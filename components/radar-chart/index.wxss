@@ -1,0 +1,10 @@
+/* components/radar-chart/index.wxss —— 雷达图容器与「无 Canvas 2D」回退视图（第六章像素风） */
+.rc { position: relative; margin: 0 auto; }
+.rc__cv { display: block; }
+
+.rc__fb { padding: 12rpx 8rpx; }
+.rc__row { display: flex; align-items: center; gap: 12rpx; margin-bottom: 12rpx; }
+.rc__label { width: 76rpx; font-size: 22rpx; color: var(--text-dim); }
+.rc__track { flex: 1; height: 18rpx; background: var(--navy900); border: 3rpx solid var(--line-soft); overflow: hidden; }
+.rc__fill { height: 100%; background: var(--orange); transition: width 160ms steps(5); }
+.rc__val { width: 56rpx; text-align: right; font-size: 22rpx; color: var(--gold); }

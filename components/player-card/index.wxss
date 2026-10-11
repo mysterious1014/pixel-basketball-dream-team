@@ -1,0 +1,11 @@
+.pc { position: relative; background: #131d3d; border: 4rpx solid var(--rc, #3c4f8f); box-shadow: 0 0 0 3rpx #070c1c; }
+.pc--on { border-color: #ff8a1f; box-shadow: 0 0 0 3rpx #070c1c, 0 0 0 6rpx rgba(255,138,31,0.45); }
+.pc--locked { opacity: 0.55; }
+.pc__frame { position: relative; padding: 8rpx; }
+.pc__ovr { position: absolute; right: 10rpx; top: 6rpx; font-size: 30rpx; font-weight: bold; text-shadow: 3rpx 3rpx 0 rgba(0,0,0,0.75); letter-spacing: 1rpx; }
+.pc__meta { padding: 8rpx 10rpx 10rpx; border-top: 3rpx solid rgba(0,0,0,0.4); }
+.pc__name { display: block; font-size: 22rpx; color: #e8ecff; }
+.pc__row { display: flex; align-items: center; gap: 8rpx; margin-top: 6rpx; }
+.pc__tag { font-size: 18rpx; font-weight: bold; letter-spacing: 1rpx; }
+.pc__pos { font-size: 18rpx; color: #97a2cc; }
+.pc__lv { font-size: 18rpx; color: #ffd23f; margin-left: auto; }

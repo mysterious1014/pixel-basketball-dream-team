@@ -1,0 +1,143 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar />
+
+  <!-- 经理档案 -->
+  <view class="px-panel px-panel--gold px-mt16">
+    <view class="pf-head">
+      <view class="pf-avatar"><text class="pf-avatar-txt">GM</text></view>
+      <view class="px-col px-grow px-gap8">
+        <view class="px-row--between">
+          <text class="px-h2 px-ellipsis">{{managerName}}</text>
+          <text class="px-btn px-btn--ghost px-btn--sm" bindtap="rename">改名</text>
+        </view>
+        <text class="px-mute">Lv{{level}} · 执教 {{battles}} 场 · 胜率 {{winRate}}%</text>
+        <px-progress value="{{expRatio}}" max="{{100}}" variant="gold" height="{{16}}" label="{{exp}}/{{need}}" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="px-grid4 px-mt16">
+    <view class="pf-entry" bindtap="goCollection"><text class="pf-entry-ico">图</text><text>图鉴</text></view>
+    <view class="pf-entry" bindtap="goBag"><text class="pf-entry-ico">包</text><text>背包</text></view>
+    <view class="pf-entry" bindtap="goRoster"><text class="pf-entry-ico">阵</text><text>阵容</text></view>
+    <view class="pf-entry" bindtap="goSettings"><text class="pf-entry-ico">设</text><text>设置</text></view>
+  </view>
+
+  <!-- 收集进度 -->
+  <view class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">图鉴收集</text>
+      <text class="px-mute" bindtap="goCollection">{{ownedCount}}/{{totalCount}} ›</text>
+    </view>
+    <px-progress value="{{collectRatio}}" max="{{100}}" variant="ur" height="{{22}}" label="{{collectRatio}}%" />
+    <view class="pf-rar px-mt12">
+      <view wx:for="{{rarityRows}}" wx:key="rarity" class="pf-rar-row">
+        <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+        <view class="pf-rar-track"><view class="pf-rar-fill pf-rar-fill--{{item.rarity}}" style="width:{{item.pct}}%;"></view></view>
+        <text class="px-mute pf-rar-num">{{item.got}}/{{item.total}}</text>
+      </view>
+    </view>
+    <text class="px-mute pf-note">已获得卡牌实例 {{instances}} 张（含重复），重复卡可用于升星。</text>
+  </view>
+
+  <!-- 赛季 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">赛季征程</text>
+      <text class="px-mute" bindtap="goStages">去比赛 ›</text>
+    </view>
+    <view class="pf-stats">
+      <view class="pf-stat"><text class="pf-stat-v">{{stars}}</text><text class="px-mute">总星数/{{starMax}}</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{clearedCount}}</text><text class="px-mute">通关/{{stageCount}}</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{bestMargin}}</text><text class="px-mute">最大净胜</text></view>
+    </view>
+  </view>
+
+  <!-- 竞技场（里程碑 2：异步 PVP 天梯）：与赛季征程分账，竞技场不计星级 -->
+  <view wx:if="{{arenaEnabled}}" class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">竞技场 · {{arenaRankName}}</text>
+      <text class="px-mute" bindtap="goArena">去天梯 ›</text>
+    </view>
+    <view class="pf-stats">
+      <view class="pf-stat"><text class="pf-stat-v">{{arenaRating}}</text><text class="px-mute">积分</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{arenaWins}}/{{arenaMatches}}</text><text class="px-mute">胜/场</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{arenaProgressText}}</text><text class="px-mute">天梯</text></view>
+    </view>
+    <view class="pf-grid px-mt12">
+      <view class="pf-kv"><text class="px-mute">当前连胜</text><text class="pf-kv-v">{{arenaStreak}}</text></view>
+      <view class="pf-kv"><text class="px-mute">竞技币</text><text class="pf-kv-v">{{arenaCoinText}}</text></view>
+      <view class="pf-kv"><text class="px-mute">今日</text><text class="pf-kv-v">{{arenaDailyText}}</text></view>
+    </view>
+    <text class="px-mute pf-note">异步 PVP：对手是本地确定性生成的原创战队快照（零后端、零外链），积分按 ELO-lite 计算；竞技场不计星级、不写赛季进度。</text>
+  </view>
+
+  <!-- 交易市场（里程碑 3 第二块）：每日橱窗买入 / 出售多余版本卡换金币 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">交易市场</text>
+      <text class="px-mute" bindtap="goMarket">去逛市场 ›</text>
+    </view>
+    <view class="pf-stats">
+      <view class="pf-stat"><text class="pf-stat-v">{{goldText}}</text><text class="px-mute">金币</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{marketShelfCount}}</text><text class="px-mute">今日橱窗/格</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{marketSellable}}</text><text class="px-mute">可售卡</text></view>
+    </view>
+    <text class="px-mute pf-note">{{marketDayText}} · 卖价 = 买价 ÷ 3（买下立刻卖出净亏 2/3）；巅峰传奇版不流通。</text>
+  </view>
+
+  <!-- 王朝赛季（里程碑 3 第三块）：赛季积分 / 通行证等级 / 待领奖励 -->
+  <view wx:if="{{dynastyEnabled}}" class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">王朝赛季 · {{dynastyLevelText}}</text>
+      <text class="px-mute" bindtap="goDynasty">去领奖 ›</text>
+    </view>
+    <view class="pf-stats">
+      <view class="pf-stat"><text class="pf-stat-v">{{dynastyPointsText}}</text><text class="px-mute">赛季积分</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{dynastyDaysLeftText}}</text><text class="px-mute">赛季剩余</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{dynastyClaimableText}}</text><text class="px-mute">通行证</text></view>
+    </view>
+    <text class="px-mute pf-note">打 PVE / 天梯攒赛季积分，升级通行证领奖励；赛季 30 天一滚动，王朝轨（钻石解锁）每赛季重新解锁。</text>
+  </view>
+
+  <!-- 统计 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">执教数据</text>
+    <view class="pf-grid">
+      <view class="pf-kv"><text class="px-mute">胜</text><text class="pf-kv-v">{{wins}}</text></view>
+      <view class="pf-kv"><text class="px-mute">负</text><text class="pf-kv-v">{{losses}}</text></view>
+      <view class="pf-kv"><text class="px-mute">平</text><text class="pf-kv-v">{{draws}}</text></view>
+      <view class="pf-kv"><text class="px-mute">总得分</text><text class="pf-kv-v">{{totalPoints}}</text></view>
+      <view class="pf-kv"><text class="px-mute">招募次数</text><text class="pf-kv-v">{{pulls}}</text></view>
+      <view class="pf-kv"><text class="px-mute">出 UR</text><text class="pf-kv-v">{{urCount}}</text></view>
+    </view>
+  </view>
+
+  <!-- 动态 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">球队动态</text>
+      <text wx:if="{{noticeCount}}" class="px-mute" bindtap="clearNotices">清空</text>
+    </view>
+    <view wx:if="{{!notices.length}}" class="px-empty">暂无动态，去招募或打一场吧</view>
+    <view wx:for="{{notices}}" wx:key="index" class="pf-notice">
+      <text class="px-dot"></text>
+      <text class="px-dim px-grow">{{item.text}}</text>
+      <text class="px-mute">{{item.at}}</text>
+    </view>
+  </view>
+
+  <!-- 存档与合规 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">存档信息</text>
+    <text class="px-mute pf-line">建档日期 {{createdAt}} · 存档约 {{saveSize}} 字符 · 仅存本机</text>
+    <view class="px-divider"></view>
+    <text class="px-mute pf-line">{{dataSourceLabel}}</text>
+    <text class="px-mute pf-line">{{legalNote}}</text>
+    <text class="px-mute pf-line">{{trademarkNote}}</text>
+    <text class="px-mute pf-line">{{gameName}} v{{version}} · {{milestone}} · 个人学习 / 技术演示用途</text>
+  </view>
+
+  <view class="px-safe-bottom"></view>
+</view>

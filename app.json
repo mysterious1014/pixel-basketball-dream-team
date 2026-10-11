@@ -1,0 +1,42 @@
+{
+  "pages": [
+    "pages/launch/launch",
+    "pages/home/home",
+    "pages/roster/roster",
+    "pages/recruit/recruit",
+    "pages/stages/stages",
+    "pages/arena/arena",
+    "pages/profile/profile",
+    "pages/collection/collection",
+    "pages/detail/detail",
+    "pages/match/match",
+    "pages/bag/bag",
+    "pages/market/market",
+    "pages/dynasty/dynasty",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#0d1530",
+    "navigationBarTitleText": "像素篮球梦之队",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#070c1c",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#6d78a3",
+    "selectedColor": "#ff8a1f",
+    "backgroundColor": "#131d3d",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/home/home", "text": "主页", "iconPath": "assets/tab/home.png", "selectedIconPath": "assets/tab/home_on.png" },
+      { "pagePath": "pages/roster/roster", "text": "阵容", "iconPath": "assets/tab/roster.png", "selectedIconPath": "assets/tab/roster_on.png" },
+      { "pagePath": "pages/recruit/recruit", "text": "招募", "iconPath": "assets/tab/recruit.png", "selectedIconPath": "assets/tab/recruit_on.png" },
+      { "pagePath": "pages/stages/stages", "text": "比赛", "iconPath": "assets/tab/stages.png", "selectedIconPath": "assets/tab/stages_on.png" },
+      { "pagePath": "pages/profile/profile", "text": "我的", "iconPath": "assets/tab/profile.png", "selectedIconPath": "assets/tab/profile_on.png" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

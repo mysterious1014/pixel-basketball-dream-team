@@ -1,0 +1,68 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar tickets="{{true}}" />
+
+  <!-- 概览：日期 / 刷新 / 金币 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <view class="px-col px-gap8">
+        <text class="px-panel__title">交易市场</text>
+        <text class="px-mute">{{shelfTitle}}</text>
+        <text class="px-mute">{{rerollsText}}</text>
+      </view>
+      <view class="px-col mk-side">
+        <text class="mk-count">{{goldText}}</text>
+        <view class="px-btn px-btn--sm {{refresh.can ? 'px-btn--primary' : 'px-btn--disabled'}}" bindtap="onRefresh">{{refresh.buttonText}}</view>
+      </view>
+    </view>
+    <text wx:if="{{!enabled}}" class="mk-warn px-mt8">交易市场尚未开放（config.market.enabled = false）</text>
+  </view>
+
+  <!-- 今日橱窗（买入）：canBuy / priceText / reason 全部来自 selectors.marketView -->
+  <view class="px-panel px-mt16">
+    <text class="px-panel__title">今日橱窗 · {{shelfCount}} 格</text>
+    <view wx:for="{{shelf}}" wx:key="cardId" class="mk-item {{item.canBuy ? '' : 'mk-item--off'}}">
+      <view class="mk-bar" style="background:{{item.color}};"></view>
+      <px-portrait cardId="{{item.cardId}}" size="{{80}}" />
+      <view class="px-col px-grow px-gap8">
+        <view class="px-row--between">
+          <text class="px-h3 px-ellipsis">{{item.name}} · {{item.version}}</text>
+          <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+        </view>
+        <text class="px-dim">{{item.slotLabel}} · {{item.position}} · OVR {{item.ovr}} · {{item.ownedText}}</text>
+        <text wx:if="{{item.reason}}" class="px-mute">{{item.reason}}</text>
+      </view>
+      <view class="px-btn px-btn--sm {{item.canBuy ? 'px-btn--primary' : 'px-btn--disabled'}} mk-use" data-id="{{item.cardId}}" bindtap="onBuy">{{item.btnText}}</view>
+    </view>
+  </view>
+
+  <!-- 出售：可售优先排序，阵容中 / 巅峰卡给禁用原因（全部来自 selector） -->
+  <view class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">出售 · 可售 {{sellableCount}} / {{sellCount}} 张</text>
+      <text class="px-mute" bindtap="goCollection">去图鉴 ›</text>
+    </view>
+    <view wx:for="{{sellRows}}" wx:key="uid" class="mk-item {{item.disabled ? 'mk-item--off' : ''}}">
+      <view class="mk-bar" style="background:{{item.color}};"></view>
+      <view class="px-col px-grow px-gap8">
+        <view class="px-row--between">
+          <text class="px-h3 px-ellipsis">{{item.name}} · {{item.version}}</text>
+          <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+        </view>
+        <text class="px-dim">Lv.{{item.level}} · {{item.starText}} · {{item.ownedText}}</text>
+        <text wx:if="{{item.disabledText}}" class="px-mute">{{item.disabledText}}</text>
+        <text wx:if="{{item.warnText}}" class="px-mute">{{item.warnText}}</text>
+      </view>
+      <view class="px-btn px-btn--sm {{item.disabled ? 'px-btn--disabled' : 'px-btn--ghost'}} mk-use" data-uid="{{item.uid}}" bindtap="onSell">{{item.btnText}}</view>
+    </view>
+    <text class="px-mute mk-note">{{note}}</text>
+  </view>
+
+  <!-- 价格公示与规则（文案由 config 拼出，改数值自动跟随） -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">价格公示与规则</text>
+    <text class="px-mute mk-note">{{priceNote}}</text>
+    <text class="px-mute mk-note">数值来源：{{dataSourceLabel}}</text>
+  </view>
+
+  <view class="px-btn px-btn--ghost px-btn--block px-mt16" bindtap="goRecruit">缺卡？去招募抽一发 ›</view>
+</view>

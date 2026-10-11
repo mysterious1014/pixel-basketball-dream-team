@@ -1,0 +1,9 @@
+{
+  "usingComponents": {
+    "px-portrait": "/components/px-portrait/index",
+    "radar-chart": "/components/radar-chart/index",
+    "player-card": "/components/player-card/index",
+    "px-progress": "/components/px-progress/index"
+  },
+  "navigationBarTitleText": "球员详情"
+}

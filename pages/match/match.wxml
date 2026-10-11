@@ -1,0 +1,243 @@
+<view class="mt {{reduceMotion ? 'px-calm' : ''}}">
+
+  <!-- 无法开赛（首发不足 / 超帽 / 体力不够） -->
+  <block wx:if="{{error}}">
+    <view class="mt-err px-panel px-panel--flat">
+      <text class="px-h2">无法开始比赛</text>
+      <text class="px-dim mt-err-msg">{{error}}</text>
+      <view class="px-btn px-btn--primary px-btn--block px-mt16" bindtap="goRoster">去阵容页</view>
+      <view class="px-btn px-btn--ghost px-btn--block px-mt12" bindtap="backToStages">{{backLabel}}</view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <!-- 记分牌 -->
+    <view class="mt-board">
+      <view class="mt-team">
+        <text class="mt-team-name px-ellipsis">{{homeName}}</text>
+        <text class="mt-score {{flash}}">{{homeScore}}</text>
+      </view>
+      <view class="mt-mid">
+        <text class="mt-q">{{quarterLabel}}</text>
+        <text class="mt-vs">VS</text>
+        <text class="mt-stage px-ellipsis">{{stageName}}</text>
+      </view>
+      <view class="mt-team mt-team--right">
+        <text class="mt-team-name px-ellipsis">{{awayName}}</text>
+        <text class="mt-score mt-score--away">{{awayScore}}</text>
+      </view>
+    </view>
+
+    <!-- 像素球场 Canvas -->
+    <view class="mt-court">
+      <canvas id="pxCourt" type="2d" class="mt-canvas"></canvas>
+      <view wx:if="{{!started}}" class="mt-loading px-blink">正在开球…</view>
+    </view>
+
+    <view class="mt-prog">
+      <px-progress value="{{progress}}" max="{{100}}" variant="orange" height="{{14}}" ticks="{{false}}" />
+    </view>
+
+    <!-- 播放控制 -->
+    <view class="mt-ctrl">
+      <view class="px-btn px-btn--sm mt-ctrl-btn" bindtap="togglePlay">{{playing ? '暂停' : '继续'}}</view>
+      <view class="px-btn px-btn--sm px-btn--gold mt-ctrl-btn" bindtap="changeSpeed">{{speeds[speedIndex]}}× 速</view>
+      <!-- 时长提示：1× 约 2.4 分钟（第一章「单局 2–3 分钟」），告诉玩家慢是刻意的是可以调快的 -->
+      <text class="px-mute mt-ctrl-pace">{{paceText}}</text>
+      <view class="px-btn px-btn--sm px-btn--ghost mt-ctrl-btn" bindtap="skip">跳过</view>
+      <view class="px-btn px-btn--sm px-btn--ghost mt-ctrl-btn" bindtap="backToStages">离场</view>
+    </view>
+
+    <!-- 文字直播 -->
+    <view class="mt-log-head">
+      <text class="px-panel__title">文字直播</text>
+      <text class="px-mute">{{log.length}}/{{totalLog}}</text>
+    </view>
+    <scroll-view class="mt-log" scroll-y scroll-into-view="{{scrollInto}}">
+      <view wx:if="{{!log.length}}" class="px-empty">开球中…</view>
+      <view wx:for="{{log}}" wx:key="i" id="lg-{{item.i}}" class="mt-item {{item.cls}}">
+        <text class="mt-item-q">{{item.q}}</text>
+        <text class="mt-item-text">{{item.text}}</text>
+        <!-- 战术克制角标（第七章 7.4）：绿 = 对我方有利，红 = 对我方不利，判据在 js 里算好 -->
+        <text wx:if="{{item.counter}}" class="mt-tc {{item.counterCls}}">{{item.counterText}}</text>
+      </view>
+    </scroll-view>
+  </block>
+
+  <!-- ============ 结算 ============ -->
+  <view wx:if="{{finished}}" class="px-mask mt-mask"></view>
+  <view wx:if="{{finished}}" class="px-modal mt-modal">
+    <scroll-view class="mt-modal-body" scroll-y>
+      <view class="mt-res mt-res--{{resultKind}}">
+        <text class="mt-res-title px-pop">{{resultText}}</text>
+        <view class="mt-res-score">
+          <text class="mt-res-num">{{homeScore}}</text>
+          <text class="mt-res-colon">:</text>
+          <text class="mt-res-num">{{awayScore}}</text>
+        </view>
+        <text wx:if="{{!arenaMode}}" class="mt-res-stars">{{starText || '—'}}</text>
+        <text wx:if="{{arenaMode}}" class="mt-res-rank px-ellipsis">{{arenaRankName}}</text>
+        <text class="px-mute">净胜 {{margin}} 分{{ot ? ' · 加时 ' + ot + ' 次' : ''}}</text>
+      </view>
+
+      <view class="mt-sec">
+        <text class="mt-sec-title">本场奖励</text>
+        <view wx:for="{{rewardLines}}" wx:key="k" class="mt-kv">
+          <text class="px-dim">{{item.k}}</text>
+          <text class="mt-kv-v">{{item.v}}</text>
+        </view>
+        <text wx:if="{{dynastyMissionText}}" class="mt-dyn-note">{{dynastyMissionText}}</text>
+      </view>
+
+      <!-- 竞技场结算（第七章 7.4 异步 PVP）：积分 / 段位 / 连胜 / 期望胜率，替代 PVE 的星级 -->
+      <view wx:if="{{arenaSettled}}" class="mt-sec">
+        <text class="mt-sec-title">竞技场结算</text>
+        <view class="mt-arena-delta">
+          <text class="mt-arena-num {{ratingDeltaCls}}">{{ratingDeltaText}}</text>
+          <text class="px-mute">积分 {{ratingAfter}} · {{arenaRankText}}</text>
+        </view>
+        <view class="mt-kv"><text class="px-dim">当前段位</text><text class="mt-kv-v">{{arenaRankName}}</text></view>
+        <view class="mt-kv"><text class="px-dim">连胜</text><text class="mt-kv-v">{{arenaStreakText}}</text></view>
+        <view class="mt-kv"><text class="px-dim">赛前期望胜率</text><text class="mt-kv-v">{{arenaExpectedText}}</text></view>
+        <view class="mt-kv"><text class="px-dim">竞技币余额</text><text class="mt-kv-v">{{arenaCoinText}}</text></view>
+        <view class="mt-kv"><text class="px-dim">今日次数</text><text class="mt-kv-v">{{arenaDailyText}}</text></view>
+        <text wx:if="{{arenaFirstWin}}" class="mt-arena-fw">天梯首胜：额外奖励已发放</text>
+        <text class="px-mute mt-note">积分口径 ELO-lite：打赢强的多涨、输给弱的多扣，连胜另有加成。竞技场不计星级、不写赛季进度。</text>
+      </view>
+
+      <!-- 历史回放：快照复现，不产生任何结算 -->
+      <view wx:if="{{arenaReplayNote}}" class="mt-sec">
+        <text class="mt-sec-title">历史回放</text>
+        <text class="px-mute mt-note">本局由存档快照复现（同 seed + 同阵容 ⇒ 逐回合一致），不计积分、不消耗每日次数与体力。</text>
+      </view>
+
+      <view wx:if="{{mvp}}" class="mt-sec">
+        <text class="mt-sec-title">全场最佳 · {{mvp.side}}</text>
+        <view class="mt-mvp">
+          <text class="px-h3">{{mvp.name}}</text>
+          <text class="px-dim">{{mvp.pts}} 分 · {{mvp.blk}} 盖帽 · {{mvp.dreb}} 篮板</text>
+        </view>
+      </view>
+
+      <!-- 本场羁绊（第七章 7.3，里程碑 2）：主客双方都算，让 BOSS 关的传奇阵容也有性格 -->
+      <view wx:if="{{homeBonds.length || awayBonds.length}}" class="mt-sec">
+        <text class="mt-sec-title">本场羁绊</text>
+        <view class="mt-bond-side">
+          <text class="px-dim">{{homeName}}</text>
+          <view wx:for="{{homeBonds}}" wx:key="id" class="mt-bond">
+            <text class="mt-bond-tag mt-bond-tag--{{item.type}}">{{item.typeLabel}}</text>
+            <view class="px-col px-grow">
+              <text class="px-text">{{item.name}}</text>
+              <text class="px-mute mt-bond-bonus">{{item.bonusText}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="mt-bond-side">
+          <text class="px-dim">{{awayName}}</text>
+          <view wx:for="{{awayBonds}}" wx:key="id" class="mt-bond">
+            <text class="mt-bond-tag mt-bond-tag--{{item.type}}">{{item.typeLabel}}</text>
+            <view class="px-col px-grow">
+              <text class="px-text">{{item.name}}</text>
+              <text class="px-mute mt-bond-bonus">{{item.bonusText}}</text>
+            </view>
+          </view>
+          <text wx:if="{{!awayBonds.length}}" class="px-mute mt-bond-none">未触发</text>
+        </view>
+        <text class="px-mute mt-bond-note">羁绊只提升比赛中的属性，不影响 OVR 与薪资。</text>
+      </view>
+
+      <!-- 名场面时刻卡（第八章，里程碑 2）：谁戴了哪张卡、本场触发了什么效果。
+           没戴卡时整块不渲染（wx:if 判长度），所以里程碑 1 的结算面板外观完全不变。 -->
+      <view wx:if="{{homeMoments.length || awayMoments.length}}" class="mt-sec">
+        <text class="mt-sec-title">名场面时刻卡</text>
+        <view class="mt-bond-side">
+          <text class="px-dim">{{homeName}}</text>
+          <view wx:for="{{homeMoments}}" wx:key="uid" class="mt-bond">
+            <text class="mt-bond-tag mt-moment-tag--{{item.rarity}}">{{item.rarity}}</text>
+            <view class="px-col px-grow">
+              <text class="px-text">{{item.name}}</text>
+              <text class="px-mute mt-bond-bonus">{{item.playerName}} · {{item.effectText}}</text>
+            </view>
+          </view>
+        </view>
+        <view wx:if="{{awayMoments.length}}" class="mt-bond-side">
+          <text class="px-dim">{{awayName}}</text>
+          <view wx:for="{{awayMoments}}" wx:key="uid" class="mt-bond">
+            <text class="mt-bond-tag mt-moment-tag--{{item.rarity}}">{{item.rarity}}</text>
+            <view class="px-col px-grow">
+              <text class="px-text">{{item.name}}</text>
+              <text class="px-mute mt-bond-bonus">{{item.playerName}} · {{item.effectText}}</text>
+            </view>
+          </view>
+        </view>
+        <text class="px-mute mt-bond-note">时刻卡只在比赛内触发，不改属性面板、OVR 与薪资。</text>
+      </view>
+
+      <!-- 战术克制统计（第七章 7.4）：双方打法 / 防守策略 + 克制触发次数，数字来自 battle.counters -->
+      <view wx:if="{{counterEnabled}}" class="mt-sec">
+        <text class="mt-sec-title">战术克制 · 命中加成 +{{counterBonusPct}}%</text>
+        <view class="mt-tcrow">
+          <text class="mt-tcside px-ellipsis">{{homeName}}</text>
+          <text class="px-mute px-grow px-ellipsis">{{homeTacticName}} / {{homeDefenseName}}</text>
+          <text class="mt-tccount">{{homeCounterText}}</text>
+        </view>
+        <view class="mt-tcrow">
+          <text class="mt-tcside px-ellipsis">{{awayName}}</text>
+          <text class="px-mute px-grow px-ellipsis">{{awayTacticName}} / {{awayDefenseName}}</text>
+          <text class="mt-tccount">{{awayCounterText}}</text>
+        </view>
+        <text class="px-mute mt-note">「克」= 我方打法正好打在对手防守弱侧的出手数，这些回合命中加成 +{{counterBonusPct}}%；「被克」= 出手被对手防守掐住的次数。战报里带角标的回合就是触发点，去阵容页换打法 / 防守策略可以翻转它。</text>
+      </view>
+
+      <view class="mt-sec">
+        <text class="mt-sec-title">分节比分</text>
+        <view class="mt-qrow mt-qrow--head">
+          <text class="mt-qc1">节次</text>
+          <block wx:for="{{quarters}}" wx:key="label"><text class="mt-qc">{{item.label}}</text></block>
+        </view>
+        <view class="mt-qrow">
+          <text class="mt-qc1">{{homeName}}</text>
+          <block wx:for="{{quarters}}" wx:key="label"><text class="mt-qc">{{item.home}}</text></block>
+        </view>
+        <view class="mt-qrow">
+          <text class="mt-qc1">{{awayName}}</text>
+          <block wx:for="{{quarters}}" wx:key="label"><text class="mt-qc">{{item.away}}</text></block>
+        </view>
+      </view>
+
+      <view class="mt-sec">
+        <text class="mt-sec-title">我方数据</text>
+        <view class="mt-qrow mt-qrow--head">
+          <text class="mt-sc1">球员</text><text class="mt-sc">得分</text><text class="mt-sc">三分</text><text class="mt-sc">盖帽</text><text class="mt-sc">篮板</text>
+        </view>
+        <view wx:for="{{homeStats}}" wx:key="uid" class="mt-qrow">
+          <text class="mt-sc1 px-ellipsis">{{item.name}}</text>
+          <text class="mt-sc">{{item.pts}}</text><text class="mt-sc">{{item.tpm}}</text><text class="mt-sc">{{item.blk}}</text><text class="mt-sc">{{item.dreb}}</text>
+        </view>
+      </view>
+
+      <view class="mt-sec">
+        <text class="mt-sec-title">对手数据</text>
+        <view wx:for="{{awayStats}}" wx:key="uid" class="mt-qrow">
+          <text class="mt-sc1 px-ellipsis">{{item.name}}</text>
+          <text class="mt-sc">{{item.pts}}</text><text class="mt-sc">{{item.tpm}}</text><text class="mt-sc">{{item.blk}}</text><text class="mt-sc">{{item.dreb}}</text>
+        </view>
+      </view>
+
+      <view class="mt-sec">
+        <text class="mt-sec-title">可复现种子</text>
+        <view class="mt-seed" bindtap="copySeed">
+          <text class="px-mute px-grow px-ellipsis">{{seed}}</text>
+          <text class="px-mute">点击复制</text>
+        </view>
+        <text class="px-mute mt-seed-tip">同 seed + 同阵容 ⇒ 逐回合完全一致，可用 node tools/replay-battle.mjs --seed 校验。</text>
+      </view>
+    </scroll-view>
+
+    <view class="mt-modal-foot">
+      <view class="px-btn px-btn--primary px-btn--sm px-grow {{canReplay ? '' : 'px-btn--disabled'}}" bindtap="replay">{{replayLabel}}</view>
+      <view class="px-btn px-btn--sm px-grow" bindtap="backToStages">{{backLabel}}</view>
+      <view class="px-btn px-btn--ghost px-btn--sm px-grow" bindtap="goRoster">调阵容</view>
+    </view>
+  </view>
+</view>

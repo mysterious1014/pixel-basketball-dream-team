@@ -1,0 +1,41 @@
+/* pages/profile/profile.wxss —— 我的页：档案卡 + 收集进度 + 统计网格 */
+.pf-head { display: flex; gap: 16rpx; align-items: center; }
+.pf-avatar {
+  width: 108rpx; height: 108rpx; flex: none; display: flex; align-items: center; justify-content: center;
+  background: var(--navy900); border: 4rpx solid var(--gold); box-shadow: inset 0 0 0 3rpx var(--orange);
+}
+.pf-avatar-txt { font-size: 32rpx; color: var(--gold); letter-spacing: 2rpx; }
+
+.pf-entry {
+  display: flex; flex-direction: column; align-items: center; gap: 8rpx; padding: 16rpx 0;
+  background: var(--navy700); border: 4rpx solid var(--line);
+  box-shadow: 0 6rpx 0 0 var(--navy900), inset 0 0 0 2rpx var(--line-soft);
+  font-size: 22rpx; color: var(--text-dim);
+}
+.pf-entry-ico {
+  width: 52rpx; height: 52rpx; line-height: 52rpx; text-align: center;
+  font-size: 26rpx; color: var(--navy900); background: var(--orange); border: 3rpx solid var(--gold);
+}
+
+.pf-rar { display: flex; flex-direction: column; gap: 8rpx; }
+.pf-rar-row { display: flex; align-items: center; gap: 10rpx; }
+.pf-rar-track { flex: 1; height: 16rpx; background: var(--navy900); border: 2rpx solid var(--line-soft); overflow: hidden; }
+.pf-rar-fill { height: 100%; transition: width 200ms steps(6); }
+.pf-rar-fill--N { background: var(--n); } .pf-rar-fill--R { background: var(--r); }
+.pf-rar-fill--SR { background: var(--sr); } .pf-rar-fill--SSR { background: var(--ssr); }
+.pf-rar-fill--UR { background: var(--ur); }
+.pf-rar-num { width: 88rpx; text-align: right; flex: none; }
+.pf-note { display: block; margin-top: 12rpx; line-height: 1.7; }
+
+.pf-stats { display: flex; }
+.pf-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.pf-stat + .pf-stat { border-left: 3rpx solid var(--line-soft); }
+.pf-stat-v { font-size: 34rpx; color: var(--orange); font-weight: bold; }
+
+.pf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; }
+.pf-kv { display: flex; flex-direction: column; align-items: center; gap: 2rpx; padding: 10rpx 0; background: var(--navy800); border: 3rpx solid var(--line-soft); }
+.pf-kv-v { font-size: 26rpx; color: var(--text); }
+
+.pf-notice { display: flex; align-items: center; gap: 10rpx; padding: 10rpx 0; }
+.pf-notice + .pf-notice { border-top: 2rpx solid var(--line-soft); }
+.pf-line { display: block; line-height: 1.8; }

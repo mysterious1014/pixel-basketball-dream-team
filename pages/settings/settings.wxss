@@ -1,0 +1,13 @@
+/* pages/settings/settings.wxss —— 设置页：分组面板 + 开关行 + 键值表 */
+.st-row { display: flex; align-items: center; gap: 16rpx; padding: 16rpx 0; }
+.st-row + .st-row { border-top: 2rpx solid var(--line-soft); }
+.st-row--col { flex-direction: column; align-items: flex-start; gap: 6rpx; }
+.st-row switch { transform: scale(0.82); flex: none; }
+
+.st-kv { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; padding: 8rpx 0; }
+.st-kv + .st-kv { border-top: 2rpx solid rgba(42,58,107,0.5); }
+.st-kv text:last-child { text-align: right; max-width: 62%; }
+.st-mono { font-size: 18rpx; word-break: break-all; }
+
+.st-legal { display: block; line-height: 1.8; margin-top: 8rpx; }
+.st-about { margin-top: 10rpx; }

@@ -1,0 +1,230 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar />
+
+  <!-- 段位 / 积分 / 战绩 -->
+  <view class="px-panel px-panel--gold px-mt16">
+    <view class="px-row--between">
+      <view class="px-row px-gap12">
+        <text class="ar-rank" style="color:{{rankColor}}">{{rankShort}}</text>
+        <view class="px-col">
+          <text class="px-h2">{{rankName}}</text>
+          <text class="px-mute">{{rankCaption}}</text>
+        </view>
+      </view>
+      <view class="px-col ar-rating">
+        <text class="px-num">{{rating}}</text>
+        <text class="px-mute">上场 {{lastRatingText}}</text>
+      </view>
+    </view>
+    <px-progress class="px-mt12" value="{{rankRatio}}" max="{{100}}" variant="gold" height="{{22}}" label="{{rankRatio}}%" />
+    <view class="px-row--between px-mt8">
+      <text class="px-mute">{{recordText}}</text>
+      <text class="px-mute">连胜 {{streak}} · 最佳 {{bestStreak}}</text>
+    </view>
+    <view class="px-row--between px-mt8">
+      <!-- 竞技币可点 → 竞技商城（里程碑 2 的消费出口）。
+           刻意做成可点而不是纯文字：币攒着没地方花，玩家就不知道打天梯除了积分还能得到什么。 -->
+      <text class="px-mute ar-coin-link" bindtap="goShop">竞技币 {{arenaCoinText}} · 去兑换 ›</text>
+      <text class="px-mute">{{progressText}}</text>
+    </view>
+  </view>
+
+  <!-- 出战条件 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">今日挑战</text>
+      <text class="px-mute">{{dailyText}}</text>
+    </view>
+    <view class="px-row--between ar-cond">
+      <text class="px-dim">首发均评 {{starterAvgOvr}}</text>
+      <text class="px-dim">体力 {{stamina}} · 每场 {{staminaCost}}</text>
+      <text class="px-dim">剩余 {{dailyLeft}} 场</text>
+    </view>
+    <!-- 加赛（里程碑 5）：钻石加购当日挑战次数；字段在 selectors 预计算，WXML 零判断 -->
+    <view wx:if="{{extra.enabled}}" class="px-row--between ar-cond px-mt8">
+      <text class="px-dim">加赛 {{extra.bought}}/{{extra.max}} · {{extra.cost}} 钻/场 · {{diamondText}}</text>
+      <view class="px-btn px-btn--sm {{extra.canBuy ? 'px-btn--primary' : 'px-btn--disabled'}}" bindtap="buyExtra">{{extra.buyText}}</view>
+    </view>
+    <text wx:if="{{extra.enabled}}" class="px-mute ar-note">{{extraNote}}</text>
+    <view wx:if="{{blockText}}" class="ar-warn px-mt8" bindtap="goRoster">{{blockText}}</view>
+    <view wx:else class="ar-ok px-mt8">可以出战{{allCleared ? '' : '：下一位 ' + nextOpponentName}}</view>
+    <view wx:if="{{!allCleared}}" class="px-btn px-btn--primary px-btn--block px-mt12 {{canFight ? '' : 'px-btn--disabled'}}"
+      data-id="{{nextOpponentId}}" bindtap="challenge">挑战 {{nextOpponentName}}</view>
+    <view wx:else class="px-mute px-mt12">天梯 12 位对手已全部赢下，可以继续挑战刷积分。</view>
+  </view>
+
+  <!-- 战术：打法 + 防守策略（与阵容页同一份 state.roster） -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">战术</text>
+    <text class="px-mute ar-sub">进攻打法</text>
+    <view class="px-row--wrap px-gap12">
+      <view wx:for="{{styles}}" wx:key="key" class="px-chip {{playStyle === item.key ? 'px-chip--on' : ''}}"
+        data-key="{{item.key}}" bindtap="onStyle">{{item.name}}</view>
+    </view>
+    <view class="px-divider"></view>
+    <text class="px-mute ar-sub">防守策略 · 当前定调「{{myDefenseName}}」</text>
+    <view class="px-row--wrap px-gap12">
+      <view wx:for="{{defenses}}" wx:key="key" class="px-chip {{defense === item.key ? 'px-chip--on' : ''}}"
+        data-key="{{item.key}}" bindtap="onDefense">{{item.name}}</view>
+    </view>
+    <text class="px-mute ar-note">{{defenseDesc}}</text>
+    <text class="px-mute ar-note">{{counterEnabled ? counterHint : '战术克制未开启，防守策略当前不产生任何影响。'}}</text>
+  </view>
+
+  <!-- 天梯（侦察列表） -->
+  <view class="px-row--between px-mt20">
+    <text class="px-panel__title">天梯对手</text>
+    <text class="px-mute">点卡片看侦察详情</text>
+  </view>
+  <view wx:for="{{ladder}}" wx:key="id"
+    class="px-panel px-panel--flat ar-card {{item.unlocked ? '' : 'ar-card--lock'}} {{item.isNext ? 'ar-card--next' : ''}}"
+    data-id="{{item.id}}" bindtap="openDetail" hover-class="{{item.unlocked ? 'px-btn--active' : ''}}">
+    <view class="px-row--between">
+      <view class="px-row px-gap8 ar-card-head">
+        <text class="ar-idx">{{item.index}}</text>
+        <text class="px-h3 px-ellipsis">{{item.name}}</text>
+        <text wx:if="{{item.isNext}}" class="px-tag px-tag--SSR">下一个</text>
+        <text wx:elif="{{item.beaten}}" class="px-tag px-tag--R">已赢过</text>
+        <text wx:elif="{{!item.unlocked}}" class="px-tag px-tag--N">未解锁</text>
+      </view>
+      <text class="px-mute">{{item.rankName}} {{item.rating}}</text>
+    </view>
+    <view class="px-row--between px-mt8">
+      <text class="px-dim px-ellipsis">均评 {{item.ovr}} · 打法 {{item.playStyleName}} · 防守 {{item.defenseName}}</text>
+      <text class="px-mute">{{item.recordText}}</text>
+    </view>
+    <view class="px-row--between px-mt8">
+      <text class="px-mute px-grow">{{item.counterText}}</text>
+      <text class="ar-verdict {{item.verdictCls}}">{{item.verdict}}</text>
+    </view>
+    <view class="px-row--between px-mt8">
+      <text class="px-mute px-grow">怕 {{item.suggestDefenseName}}{{item.suggestIsCurrent ? '（已采用）' : ''}}</text>
+      <view wx:if="{{item.unlocked}}" class="px-btn px-btn--sm {{item.canPlay ? 'px-btn--primary' : 'px-btn--disabled'}}"
+        data-id="{{item.id}}" catchtap="challenge">挑战</view>
+    </view>
+    <text wx:if="{{!item.unlocked}}" class="px-mute ar-lock">{{item.lockText}}</text>
+  </view>
+
+  <!-- 历史对局（可复现快照） -->
+  <view class="px-row--between px-mt20">
+    <text class="px-panel__title">历史对局</text>
+    <text class="px-mute">{{historyCount}}/{{historyMax}}</text>
+  </view>
+  <view wx:if="{{!historyCount}}" class="px-panel px-panel--flat">
+    <text class="px-empty">还没有对局记录。打完一场后，这里会留下可离线复现的快照。</text>
+  </view>
+  <view wx:for="{{history}}" wx:key="seed" class="px-panel px-panel--flat ar-hist">
+    <view class="px-row--between">
+      <text class="px-text ar-hist-name {{item.result === 'win' ? 'tc-good' : (item.result === 'lose' ? 'tc-bad' : 'tc-warn')}}">{{item.resultText}} {{item.opponentName}}</text>
+      <text class="px-mute">{{item.atText}}</text>
+    </view>
+    <view class="px-row--between px-mt8">
+      <text class="px-dim">{{item.score}} · 净胜 {{item.margin}}{{item.ot ? ' · 加时 ' + item.ot : ''}}</text>
+      <text class="px-text {{item.ratingDelta >= 0 ? 'tc-good' : 'tc-bad'}}">积分 {{item.ratingText}}</text>
+    </view>
+    <view class="px-row--between px-mt8">
+      <text class="px-mute px-grow px-ellipsis" data-seed="{{item.seed}}" bindtap="copySeed">seed {{item.seed}}</text>
+      <view class="px-btn px-btn--sm px-btn--ghost {{item.canReplay ? '' : 'px-btn--disabled'}}"
+        data-index="{{index}}" catchtap="replayHistory">回放</view>
+    </view>
+  </view>
+
+  <!-- 口径说明：零后端 / 零外链 / 可复现 -->
+  <view class="px-panel px-panel--flat px-mt20">
+    <text class="px-panel__title">关于这个模式</text>
+    <text class="px-mute ar-note">{{note}}</text>
+    <text class="px-mute ar-note">积分按 ELO-lite 结算：赢分高的对手涨得多，输给分低的对手扣得少；连胜有额外加成并封顶。每日挑战次数按本地日期重置。</text>
+    <text class="px-mute ar-note">竞技场不计入赛季星级与执教战绩，也不发放球员星级 —— 它只产出积分、金币、钻石、碎片与竞技币。竞技币可在竞技商城兑换名场面时刻卡（独占）。</text>
+    <view class="px-btn px-btn--ghost px-btn--block px-mt12" bindtap="goShop">竞技商城 · 兑换时刻卡 ›</view>
+    <text class="px-mute ar-note">数据口径：{{dataSourceLabel}}。</text>
+  </view>
+
+  <view class="px-row px-gap12 px-mt16">
+    <view class="px-btn px-grow" bindtap="goRoster">调阵容</view>
+    <view class="px-btn px-btn--ghost px-grow" bindtap="goStages">回赛季征程</view>
+  </view>
+
+  <view class="px-safe-bottom"></view>
+
+  <!-- 对手详情 -->
+  <view wx:if="{{detail}}" class="px-mask" bindtap="closeDetail"></view>
+  <view wx:if="{{detail}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">{{detail.index}} · {{detail.name}}</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeDetail">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <view class="px-panel px-panel--orange px-panel--flat">
+        <view class="px-row--between">
+          <text class="px-h2">{{detail.name}}</text>
+          <text class="px-tag px-tag--SR">{{detail.rankName}} {{detail.rating}}</text>
+        </view>
+        <text class="px-dim ar-desc">{{detail.desc}}</text>
+        <view class="ar-vs px-mt12">
+          <view class="ar-vs-side">
+            <text class="px-mute">我方</text>
+            <text class="px-num">{{starterAvgOvr}}</text>
+            <text class="px-mute">{{playStyleName}} · {{myDefenseName}}</text>
+          </view>
+          <text class="ar-vs-mid">VS</text>
+          <view class="ar-vs-side">
+            <text class="px-mute px-ellipsis">{{detail.name}}</text>
+            <text class="px-num">{{detail.ovr}}</text>
+            <text class="px-mute">{{detail.playStyleName}} · {{detail.defenseName}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="px-panel px-panel--flat px-mt16">
+        <text class="px-panel__title">战术侦察</text>
+        <view class="ar-scout-row">
+          <text class="px-mute ar-scout-k">对手防守</text>
+          <text class="px-text px-grow">{{detail.defenseName}}{{detail.defenseAuto ? '（按属性自动定调）' : ''}}</text>
+        </view>
+        <view class="ar-scout-row">
+          <text class="px-mute ar-scout-k">我方打法</text>
+          <text class="px-mute px-grow">{{detail.counterText}}</text>
+          <text class="ar-verdict {{detail.verdictCls}}">{{detail.verdict}}</text>
+        </view>
+        <view class="ar-scout-row">
+          <text class="px-mute ar-scout-k">得分价值</text>
+          <text class="px-mute px-grow">{{detail.valueText}}</text>
+        </view>
+        <view class="px-divider"></view>
+        <text class="ar-sug">{{detail.suggestText}}</text>
+        <view wx:if="{{!detail.suggestIsCurrent}}" class="px-btn px-btn--sm px-btn--gold px-mt12"
+          data-key="{{detail.suggestDefenseKey}}" bindtap="useSuggest">采纳这套防守</view>
+        <text wx:else class="px-mute ar-note">当前防守策略已经是建议的那一套。</text>
+        <text class="px-mute ar-note">想惩罚「{{detail.defenseName}}」就把打法换掉：收缩护筐怕中投与三分（拉外线），外线扩防怕低位与突破（凿内线），人盯人不偏科。</text>
+      </view>
+
+      <view class="px-panel px-panel--flat px-mt16">
+        <text class="px-panel__title">对手首发</text>
+        <view wx:for="{{detail.players}}" wx:key="cardId" class="ar-lineup">
+          <px-portrait cardId="{{item.cardId}}" size="{{72}}" />
+          <view class="px-col px-grow">
+            <text class="px-text px-ellipsis">{{item.name}}</text>
+            <text class="px-mute">{{item.position}} · #{{item.number}}</text>
+          </view>
+          <text class="px-num ar-lineup-ovr">{{item.ovr}}</text>
+        </view>
+        <text wx:if="{{detail.bondCount}}" class="px-mute ar-note">对手羁绊 {{detail.bondCount}} 条：{{detail.bondText}}</text>
+      </view>
+
+      <view class="px-panel px-panel--flat px-mt16">
+        <text class="px-panel__title">奖励</text>
+        <text class="px-dim">{{detail.rewardText}}</text>
+        <text wx:if="{{detail.firstWinText && !detail.beaten}}" class="ar-first px-mt8">{{detail.firstWinText}}</text>
+        <view class="px-divider"></view>
+        <text class="px-mute">消耗体力 {{staminaCost}} · 当前 {{stamina}} · 今日剩余 {{dailyLeft}} 场</text>
+        <text class="px-mute ar-note">战绩 {{detail.recordText}}{{detail.bestMargin === null ? '' : ' · 最好净胜 ' + detail.bestMargin + ' 分'}}</text>
+      </view>
+    </scroll-view>
+    <view class="ar-foot">
+      <view class="px-btn px-btn--primary px-btn--block {{detail.canPlay ? '' : 'px-btn--disabled'}}"
+        data-id="{{detail.id}}" bindtap="challenge">
+        {{detail.beaten ? '再战一场' : '挑战'}}
+      </view>
+    </view>
+  </view>
+</view>

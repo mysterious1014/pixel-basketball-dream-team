@@ -1,0 +1,10 @@
+/* pages/market/market.wxss —— 交易市场（里程碑 3 第二块）：只补本页特有布局，通用样式走 app.wxss */
+.mk-item { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 0; }
+.mk-item + .mk-item { border-top: 2rpx solid var(--line-soft); }
+.mk-item--off { opacity: 0.55; }
+.mk-bar { width: 10rpx; height: 76rpx; flex: none; }
+.mk-side { align-items: flex-end; }
+.mk-count { font-size: 24rpx; color: var(--gold); }
+.mk-use { width: 160rpx; flex: none; }
+.mk-note { display: block; margin-top: 12rpx; line-height: 1.7; }
+.mk-warn { display: block; color: var(--orange); font-size: 24rpx; }

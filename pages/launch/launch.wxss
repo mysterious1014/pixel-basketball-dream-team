@@ -1,0 +1,32 @@
+/* pages/launch/launch.wxss —— 启动页：像素 LOGO + CRT 扫描线 + 合规声明（第六章像素风） */
+.lc { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding-bottom: 120rpx; }
+
+.lc__logo {
+  width: 240rpx; height: 240rpx; padding: 12rpx;
+  background: var(--navy800);
+  border: 6rpx solid var(--gold);
+  box-shadow: 0 0 0 6rpx var(--navy900), 0 10rpx 0 0 rgba(0,0,0,0.5);
+}
+.lc__img { width: 100%; height: 100%; }
+
+.lc__title { margin-top: 36rpx; font-size: 44rpx; letter-spacing: 6rpx; color: var(--gold); text-shadow: 5rpx 5rpx 0 rgba(0,0,0,0.75); }
+.lc__sub { margin-top: 12rpx; font-size: 22rpx; letter-spacing: 4rpx; color: var(--orange); }
+
+/* CRT 扫描线：纯 CSS 位移动画，steps() 逐帧，不用任何图片 */
+.lc__scan {
+  margin-top: 40rpx; width: 420rpx; height: 8rpx;
+  background: repeating-linear-gradient(90deg, var(--orange) 0 12rpx, rgba(0,0,0,0) 12rpx 24rpx);
+  animation: lc-scan 1.2s steps(12) infinite;
+}
+@keyframes lc-scan { 0% { transform: translate(-40rpx,0); } 100% { transform: translate(40rpx,0); } }
+
+.lc__meta { margin-top: 32rpx; display: flex; flex-direction: column; align-items: center; gap: 6rpx; }
+.lc__tip { margin-top: 48rpx; font-size: 26rpx; color: var(--text); letter-spacing: 2rpx; }
+
+.lc__legal {
+  position: absolute; left: 30rpx; right: 30rpx; bottom: 40rpx;
+  padding: 16rpx; background: rgba(7,12,28,0.82);
+  border: 3rpx solid var(--line-soft);
+  display: flex; flex-direction: column; gap: 6rpx;
+}
+.lc__legal-line { font-size: 18rpx; line-height: 1.6; color: var(--text-mute); }

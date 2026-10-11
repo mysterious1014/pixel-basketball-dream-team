@@ -1,0 +1,76 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar tickets="{{false}}" />
+
+  <!-- 赛季概览：积分 / 等级进度 / 剩余天数 / 王朝轨解锁 -->
+  <view class="px-panel px-panel--gold px-mt16">
+    <view class="px-row--between">
+      <view class="px-col px-gap8">
+        <text class="px-panel__title">王朝赛季</text>
+        <text class="px-mute">{{seasonTitle}}</text>
+        <text class="px-mute">{{daysLeftText}}</text>
+      </view>
+      <view class="px-col dy-side">
+        <text class="dy-lv">{{levelText}}</text>
+        <text class="px-mute">{{pointsText}} 积分</text>
+      </view>
+    </view>
+    <view class="dy-bar"><view class="dy-bar-fill" style="width:{{progress.ratio}}%;"></view></view>
+    <view class="px-row--between px-mt8">
+      <text class="px-mute">{{progress.text}}</text>
+      <text class="px-mute">{{progress.toNextText}}</text>
+    </view>
+    <view class="px-row--between px-mt12">
+      <text class="px-mute">{{claimableText}}</text>
+      <view class="px-btn px-btn--sm {{premiumCan ? 'px-btn--primary' : 'px-btn--disabled'}}" bindtap="onUnlockPremium">{{premiumBtnText}}</view>
+    </view>
+    <text wx:if="{{premiumReason}}" class="px-mute dy-note">{{premiumReason}}</text>
+    <text wx:if="{{!enabled}}" class="dy-warn">王朝赛季尚未开放（config.dynasty.enabled = false）</text>
+  </view>
+
+  <!-- 赛季任务：进度条 + 达成态（进度 / 目标 / 达成与否全部来自 selector） -->
+  <view class="px-panel px-mt16">
+    <text class="px-panel__title">赛季任务 · 已达成 {{missionDone}} / {{missionCount}}</text>
+    <view wx:for="{{missions}}" wx:key="id" class="dy-row">
+      <view class="px-col px-grow px-gap8">
+        <view class="px-row--between">
+          <text class="px-h3">{{item.name}}</text>
+          <text class="px-mute">{{item.pointsText}} 分</text>
+        </view>
+        <text class="px-dim">{{item.desc}}</text>
+        <view class="dy-bar dy-bar--sm"><view class="dy-bar-fill {{item.done ? 'dy-bar-fill--done' : ''}}" style="width:{{item.ratio}}%;"></view></view>
+      </view>
+      <text class="dy-state {{item.done ? 'dy-state--done' : ''}}">{{item.progressText}}</text>
+    </view>
+  </view>
+
+  <!-- 通行证两轨：免费轨每级有奖；王朝轨若干级有奖，需先解锁 -->
+  <view class="px-panel px-mt16">
+    <text class="px-panel__title">赛季通行证 · 两轨</text>
+    <view wx:for="{{rows}}" wx:key="level" class="dy-pass">
+      <text class="dy-pass-lv {{item.unlocked ? 'dy-pass-lv--on' : ''}}">Lv.{{item.level}}</text>
+      <view class="px-col px-grow px-gap8">
+        <view class="px-row--between">
+          <text class="px-dim px-grow">免费 · {{item.free.text}}</text>
+          <view wx:if="{{item.free.has}}" class="px-btn px-btn--sm {{item.free.claimable ? 'px-btn--ghost' : 'px-btn--disabled'}}" data-level="{{item.level}}" data-track="free" bindtap="onClaim">{{item.free.btnText}}</view>
+        </view>
+        <view wx:if="{{item.premium.has}}" class="px-row--between">
+          <text class="px-dim px-grow">王朝 · {{item.premium.text}}</text>
+          <view class="px-btn px-btn--sm {{item.premium.claimable ? 'px-btn--primary' : 'px-btn--disabled'}}" data-level="{{item.level}}" data-track="premium" bindtap="onClaim">{{item.premium.btnText}}</view>
+        </view>
+      </view>
+    </view>
+    <text class="px-mute dy-note">{{note}}</text>
+  </view>
+
+  <!-- 规则与产出 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">积分产出与规则</text>
+    <text class="px-mute dy-note">{{incomeText}}</text>
+    <text class="px-mute dy-note">数值来源：{{dataSourceLabel}}</text>
+  </view>
+
+  <view class="px-row px-mt16 dy-grow">
+    <view class="px-btn px-btn--ghost dy-grow" bindtap="goStages">缺积分？去打 PVE ›</view>
+    <view class="px-btn px-btn--ghost dy-grow" bindtap="goArena">打天梯 ›</view>
+  </view>
+</view>

@@ -1,0 +1,69 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar compact="{{true}}" />
+
+  <!-- 总进度 -->
+  <view class="px-panel px-panel--gold px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">收藏进度</text>
+      <text class="px-mute" bindtap="togglePanel">{{panelOpen ? '收起' : '分档明细'}} ›</text>
+    </view>
+    <view class="cl-hero">
+      <text class="px-num--big">{{uniqueOwned}}</text>
+      <text class="px-dim">/ {{total}} 张卡牌</text>
+    </view>
+    <px-progress class="px-mt8" value="{{ratio}}" max="{{100}}" variant="ur" height="{{22}}" label="{{ratio}}%" />
+    <view wx:if="{{panelOpen}}" class="cl-rar px-mt12">
+      <view wx:for="{{rarityRows}}" wx:key="rarity" class="cl-rar-item">
+        <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+        <text class="px-dim">{{item.got}}/{{item.total}}</text>
+      </view>
+    </view>
+    <text wx:if="{{fictionalNames}}" class="px-mute cl-fic">已开启「虚构化名」模式，展示名均为风格化化名。</text>
+  </view>
+
+  <!-- 筛选 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="cl-flabel"><text class="px-mute">稀有度</text></view>
+    <view class="px-row--wrap px-gap8">
+      <view wx:for="{{rarityFilters}}" wx:key="*this" class="px-chip cl-chip {{fRarity === item ? 'px-chip--on' : ''}}" data-v="{{item}}" bindtap="onRarity">{{item}}</view>
+    </view>
+    <view class="cl-flabel px-mt12"><text class="px-mute">位置 / 年代</text></view>
+    <view class="px-row--wrap px-gap8">
+      <view wx:for="{{posFilters}}" wx:key="*this" class="px-chip cl-chip {{fPos === item ? 'px-chip--on' : ''}}" data-v="{{item}}" bindtap="onPos">{{item}}</view>
+    </view>
+    <view class="px-row--wrap px-gap8 px-mt8">
+      <view wx:for="{{eraFilters}}" wx:key="*this" class="px-chip cl-chip {{fEra === item ? 'px-chip--on' : ''}}" data-v="{{item}}" bindtap="onEra">{{item}}</view>
+    </view>
+    <view class="px-divider"></view>
+    <view class="px-row--wrap px-gap8">
+      <view wx:for="{{sorts}}" wx:key="key" class="px-chip cl-chip {{sortKey === item.key ? 'px-chip--on' : ''}}" data-v="{{item.key}}" bindtap="onSort">按{{item.name}}</view>
+      <view class="px-chip cl-chip {{onlyOwned ? 'px-chip--on' : ''}}" bindtap="toggleOwned">只看已有</view>
+      <view class="px-chip cl-chip" bindtap="resetFilter">重置</view>
+    </view>
+  </view>
+
+  <view class="px-row--between px-mt16">
+    <text class="px-mute">显示 {{shown}} 张 · 其中已有 {{ownedInList}} 张</text>
+    <text class="px-mute" bindtap="goRecruit">去招募 ›</text>
+  </view>
+
+  <!-- 卡牌网格 -->
+  <view wx:if="{{!shown}}" class="px-empty">没有符合条件的卡牌，换个筛选试试</view>
+  <view wx:else class="cl-grid px-mt12">
+    <view wx:for="{{list}}" wx:key="cardId" class="cl-cell" data-uid="{{item.uid}}" bindtap="onTapCard">
+      <view class="cl-frame {{item.owned ? '' : 'cl-frame--lock'}}" style="--rc:{{item.color}};">
+        <view class="cl-top">
+          <text class="cl-ovr" style="color:{{item.owned ? item.color : '#6d78a3'}};">{{item.owned ? item.ovr : '?'}}</text>
+          <text class="cl-rar" style="color:{{item.owned ? item.color : '#6d78a3'}};">{{item.owned ? item.rarity : '--'}}</text>
+        </view>
+        <px-portrait cardId="{{item.owned ? item.cardId : ''}}" size="{{150}}" dim="{{!item.owned}}" />
+        <text class="cl-name px-ellipsis">{{item.name}}</text>
+        <text class="cl-meta">{{item.position}} · {{item.owned ? item.version : '???'}}</text>
+        <text wx:if="{{item.count > 1}}" class="cl-count">×{{item.count}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="px-mt16 cl-legal"><text class="px-mute">{{dataSourceLabel}} · 未获得卡牌以剪影展示，不含任何真实商标图像</text></view>
+  <view class="px-safe-bottom"></view>
+</view>

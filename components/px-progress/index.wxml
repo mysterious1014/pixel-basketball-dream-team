@@ -1,0 +1,10 @@
+<view class="pp">
+  <view wx:if="{{caption}}" class="pp__cap {{over ? 'pp__cap--over' : ''}}">
+    <text>{{caption}}</text>
+  </view>
+  <view class="px-bar" style="height:{{height}}rpx;">
+    <view class="px-bar__fill {{cls}}" style="width:{{pct}}%;"></view>
+    <view wx:if="{{ticks}}" class="px-bar__ticks"></view>
+    <text wx:if="{{label}}" class="px-bar__label">{{label}}</text>
+  </view>
+</view>

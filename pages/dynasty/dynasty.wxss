@@ -1,0 +1,18 @@
+/* pages/dynasty/dynasty.wxss —— 王朝赛季页（里程碑 3 第三块）：只补本页特有布局，通用样式走 app.wxss */
+.dy-side { align-items: flex-end; }
+.dy-lv { font-size: 40rpx; color: var(--gold); font-weight: bold; }
+.dy-grow { flex: 1; }
+.dy-bar { height: 18rpx; background: var(--line-soft); margin-top: 12rpx; }
+.dy-bar--sm { height: 12rpx; margin-top: 4rpx; }
+.dy-bar-fill { height: 100%; background: var(--orange); }
+.dy-bar-fill--done { background: var(--gold); }
+.dy-row { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 0; }
+.dy-row + .dy-row { border-top: 2rpx solid var(--line-soft); }
+.dy-state { font-size: 24rpx; color: var(--text-mute); flex: none; }
+.dy-state--done { color: var(--gold); }
+.dy-pass { padding: 14rpx 0; }
+.dy-pass + .dy-pass { border-top: 2rpx solid var(--line-soft); }
+.dy-pass-lv { width: 110rpx; flex: none; font-size: 24rpx; color: var(--text-mute); }
+.dy-pass-lv--on { color: var(--orange); }
+.dy-note { display: block; margin-top: 12rpx; line-height: 1.7; }
+.dy-warn { display: block; color: var(--orange); font-size: 24rpx; }

@@ -1,0 +1,14 @@
+<view class="pc {{selected ? 'pc--on' : ''}} {{locked ? 'pc--locked' : ''}}" style="width:{{width}}rpx;--rc:{{rarityColor}};">
+  <view class="pc__frame">
+    <px-portrait cardId="{{locked ? '' : card.cardId}}" size="{{width - 16}}" dim="{{locked}}" />
+    <view class="pc__ovr" style="color:{{rarityColor}};">{{locked ? '?' : card.ovr}}</view>
+  </view>
+  <view wx:if="{{showMeta}}" class="pc__meta">
+    <text class="pc__name px-ellipsis">{{locked ? '？？？' : card.displayName}}</text>
+    <view class="pc__row">
+      <text class="pc__tag" style="color:{{rarityColor}};">{{locked ? '--' : card.rarity}}</text>
+      <text class="pc__pos">{{locked ? '--' : card.position}}</text>
+      <text wx:if="{{!locked && card.level > 1}}" class="pc__lv">Lv{{card.level}}</text>
+    </view>
+  </view>
+</view>

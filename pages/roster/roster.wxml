@@ -1,0 +1,273 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar />
+
+  <!-- 工资帽（第五章薪资公式 + 第七章 7.2 校验） -->
+  <view class="px-panel {{overCap ? 'rs-panel--over' : 'px-panel--gold'}} px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">工资帽</text>
+      <text class="px-mute">金币 {{goldText}}</text>
+    </view>
+    <view class="rs-cap-num {{overCap ? 'rs-cap-num--over' : ''}}">{{totalSalaryText}}<text class="rs-cap-slash"> / {{capText}}</text></view>
+    <px-progress class="px-mt8" value="{{capRatio}}" max="{{100}}" variant="{{overCap ? 'danger' : 'gold'}}" height="{{26}}"
+      label="{{starterCount + benchCount}} 人" />
+    <view class="px-row--between px-mt8">
+      <text class="px-mute">{{overCap ? '超出 ' + leftText : '剩余 ' + leftText}}</text>
+      <text class="px-mute">首发均评 {{starterAvgOvr}} · 全队均评 {{avgOvr}}</text>
+    </view>
+    <view wx:if="{{overCap}}" class="rs-warn px-mt8">薪资超出工资帽，无法出战。移走低薪替补或换掉高薪球员即可。</view>
+    <view wx:elif="{{mismatchCount > 0}}" class="rs-tip px-mt8">有 {{mismatchCount}} 名首发不在擅长位置，属性发挥会打折。</view>
+  </view>
+
+  <!-- 首发 -->
+  <view class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">首发 {{starterCount}}/{{starterNeed}}</text>
+      <text class="px-mute">点选 A 再点选 B = 交换</text>
+    </view>
+    <view class="rs-line">
+      <view wx:for="{{starters}}" wx:key="index"
+        class="rs-slot {{item.empty ? 'rs-slot--empty' : ''}} {{item.matched ? '' : 'rs-slot--off'}} {{selected.slot === item.slot && selected.index === item.index ? 'rs-slot--on' : ''}}"
+        data-slot="starters" data-index="{{item.index}}" data-uid="{{item.uid}}" data-pos="{{item.needPosition}}"
+        bindtap="onTapSlot">
+        <text class="rs-slot-pos">{{item.position}}</text>
+        <px-portrait wx:if="{{!item.empty}}" cardId="{{item.cardId}}" size="{{100}}" />
+        <view wx:else class="rs-slot-hole"><text>+</text></view>
+        <text class="rs-slot-name px-ellipsis">{{item.empty ? '空缺' : item.name}}</text>
+        <text wx:if="{{!item.empty}}" class="rs-slot-ovr px-tag--{{item.rarity}}">{{item.ovr}}</text>
+        <text class="rs-slot-sal">{{item.salaryText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 替补 -->
+  <view class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">替补 {{benchCount}}/{{benchNeed}}</text>
+      <text class="px-mute">替补同样占工资帽</text>
+    </view>
+    <view class="rs-bench">
+      <view wx:for="{{bench}}" wx:key="index"
+        class="rs-bslot {{item.empty ? 'rs-slot--empty' : ''}} {{selected.slot === item.slot && selected.index === item.index ? 'rs-slot--on' : ''}}"
+        data-slot="bench" data-index="{{item.index}}" data-uid="{{item.uid}}" data-pos=""
+        bindtap="onTapSlot">
+        <text class="rs-bslot-pos">{{item.position}}</text>
+        <block wx:if="{{!item.empty}}">
+          <px-portrait cardId="{{item.cardId}}" size="{{72}}" />
+          <text class="rs-bslot-name px-ellipsis">{{item.name}}</text>
+          <text class="rs-bslot-ovr px-tag--{{item.rarity}}">{{item.ovr}}</text>
+        </block>
+        <text wx:else class="rs-bslot-add">+</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 羁绊（第七章 7.3，里程碑 2）：只提升比赛属性，不影响 OVR / 薪资 -->
+  <view wx:if="{{bondEnabled}}" class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">羁绊 {{bondCount > 0 ? bondCount : ''}}</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="openBondSheet">羁绊图鉴</text>
+    </view>
+    <block wx:if="{{bondCount > 0}}">
+      <view wx:for="{{bondList}}" wx:key="id" class="rs-bond">
+        <text class="rs-bond-type rs-bond-type--{{item.type}}">{{item.typeLabel}}</text>
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3">{{item.name}}</text>
+            <text wx:if="{{item.detail}}" class="px-mute">{{item.detail}}</text>
+          </view>
+          <text class="rs-bond-bonus">{{item.bonusText}}</text>
+          <text class="px-mute px-ellipsis">{{item.memberText}}</text>
+        </view>
+      </view>
+      <text class="px-mute rs-bond-note">羁绊只在比赛中生效，不改 OVR 与薪资 —— 工资帽不会因为站位组合而漂移。</text>
+    </block>
+    <view wx:else class="rs-bond-empty">
+      <text class="px-mute">{{bondHint}}</text>
+      <text class="px-mute rs-bond-note">点右上「羁绊图鉴」可以看到全部宿敌与组合连线，以及还差谁。</text>
+    </view>
+  </view>
+
+  <!-- 名场面时刻卡（第八章，里程碑 2）：只在比赛内触发，不改属性面板 / OVR / 薪资 -->
+  <view wx:if="{{momentEnabled}}" class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">时刻卡 {{momentCount > 0 ? momentCount : ''}}</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="goMomentBag">时刻卡图鉴</text>
+    </view>
+    <block wx:if="{{momentCount > 0}}">
+      <view wx:for="{{momentList}}" wx:key="uid" class="rs-bond">
+        <text class="rs-bond-type rs-moment-tag--{{item.rarity}}">{{item.rarity}}</text>
+        <view class="px-col px-grow px-gap8">
+          <text class="px-h3">{{item.name}}</text>
+          <text class="rs-bond-bonus">{{item.effectText}}</text>
+          <text class="px-mute px-ellipsis">{{item.playerName}}</text>
+        </view>
+      </view>
+      <text class="px-mute rs-bond-note">时刻卡只在比赛中生效，不改属性面板、OVR 与薪资，也不占工资帽。</text>
+    </block>
+    <view wx:else class="rs-bond-empty">
+      <text class="px-mute">{{momentHint}}</text>
+      <text class="px-mute rs-bond-note">点右上「时刻卡图鉴」可以看到全部 14 张名场面卡与各自效果。</text>
+    </view>
+  </view>
+
+  <!-- 选中后的操作条 -->
+  <view wx:if="{{selected}}" class="px-panel px-panel--orange px-mt16 rs-act">
+    <text class="px-h3">已选中：{{selected.slot === 'bench' ? '替补 ' + (selected.index + 1) : selected.needPosition}}</text>
+    <view class="rs-act-row">
+      <view class="px-btn px-btn--primary px-btn--sm px-grow" bindtap="openPicker">更换球员</view>
+      <view class="px-btn px-btn--sm" bindtap="goDetail" wx:if="{{selected.uid}}">详情</view>
+      <view class="px-btn px-btn--danger px-btn--sm" bindtap="clearSlot" wx:if="{{selected.uid}}">移出</view>
+      <view class="px-btn px-btn--ghost px-btn--sm" bindtap="onTapSlot" data-slot="{{selected.slot}}" data-index="{{selected.index}}" data-uid="{{selected.uid}}" data-pos="{{selected.needPosition}}">取消</view>
+    </view>
+    <text class="px-mute px-mt8">再点场上任意一个位置即可与它交换。</text>
+  </view>
+
+  <!-- 战术：进攻打法 + 防守策略（第七章 7.4 战术克制，里程碑 2） -->
+  <view class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">战术</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="openTacticSheet">克制表</text>
+    </view>
+
+    <text class="px-mute rs-tac-sub">进攻打法</text>
+    <view class="px-row--wrap px-gap12">
+      <view wx:for="{{styleList}}" wx:key="key" class="px-chip {{playStyle === item.key ? 'px-chip--on' : ''}}"
+        data-key="{{item.key}}" bindtap="onStyle">{{item.name}}</view>
+    </view>
+    <view class="px-mute rs-style-desc">{{styleDesc}}</view>
+
+    <view class="px-divider"></view>
+
+    <text class="px-mute rs-tac-sub">防守策略</text>
+    <view class="px-row--wrap px-gap12">
+      <view wx:for="{{defenseList}}" wx:key="key" class="px-chip {{defense === item.key ? 'px-chip--on' : ''}}"
+        data-key="{{item.key}}" bindtap="onDefense">{{item.name}}</view>
+    </view>
+    <view class="px-mute rs-style-desc">{{defenseDesc}}</view>
+    <view class="rs-tac-now">
+      <text class="px-mute">本局定调</text>
+      <text class="px-text rs-tac-now-name">{{myDefenseName}}</text>
+      <text class="px-mute">{{myDefenseAutoText}}</text>
+    </view>
+
+    <view class="px-divider"></view>
+
+    <text class="px-mute rs-tac-sub">{{curMatchupName}}打法 · 对上各套防守</text>
+    <view wx:for="{{curMatchup}}" wx:key="key" class="rs-mu-row">
+      <text class="px-dim rs-mu-def">vs {{item.name}}</text>
+      <text class="px-mute px-grow">{{item.text}}</text>
+      <text class="rs-mu-verdict {{item.cls}}">{{item.verdict}}</text>
+    </view>
+    <view wx:if="{{!counterEnabled}}" class="rs-warn px-mt8">战术克制未开启，防守策略当前不产生任何影响。</view>
+    <text class="px-mute rs-tac-note">数字口径：克 / 被克的出手占比。点右上「克制表」看完整 4×3 环。</text>
+  </view>
+
+  <view class="px-row px-gap12 px-mt16">
+    <view class="px-btn px-btn--gold px-grow" bindtap="autoFill">一键最强</view>
+    <view class="px-btn px-grow" bindtap="goRecruit">去招募</view>
+    <view class="px-btn px-btn--primary px-grow {{ready ? '' : 'px-btn--disabled'}}" bindtap="goStages">去比赛</view>
+  </view>
+
+  <view class="px-safe-bottom"></view>
+
+  <!-- 换人弹层 -->
+  <view wx:if="{{sheetOpen}}" class="px-mask" bindtap="closeSheet"></view>
+  <view wx:if="{{sheetOpen}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">选择球员（{{pickerCount}}）</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeSheet">关闭</text>
+    </view>
+    <view class="rs-filter">
+      <view wx:for="{{posFilters}}" wx:key="*this" class="px-chip rs-filter-chip {{posFilter === item ? 'px-chip--on' : ''}}"
+        data-pos="{{item}}" bindtap="onPosFilter">{{item}}</view>
+      <view class="px-chip rs-filter-chip {{onlyFree ? 'px-chip--on' : ''}}" bindtap="toggleOnlyFree">只看未上场</view>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <view wx:if="{{!pickerCount}}" class="px-empty">没有符合条件的球员，去招募页抽卡吧</view>
+      <view wx:for="{{pickerList}}" wx:key="uid"
+        class="px-list-item rs-pick {{item.isCurrent ? 'px-list-item--on' : ''}} {{item.matched ? '' : 'rs-pick--off'}}"
+        data-uid="{{item.uid}}" bindtap="onPickCard">
+        <px-portrait cardId="{{item.cardId}}" size="{{88}}" />
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3 px-ellipsis">{{item.name}}</text>
+            <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+          </view>
+          <view class="px-row px-gap12">
+            <text class="px-dim">{{item.position}} · OVR {{item.ovr}}</text>
+            <text class="px-mute">{{item.salaryText}}</text>
+            <text class="px-mute">Lv{{item.level}} · {{item.stars}}★</text>
+          </view>
+          <text class="px-mute">{{item.slotLabel}}{{item.matched ? '' : ' · 位置不符'}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 羁绊图鉴弹层：全部宿敌 + 组合连线的收集状态 -->
+  <view wx:if="{{bondSheetOpen}}" class="px-mask" bindtap="closeBondSheet"></view>
+  <view wx:if="{{bondSheetOpen}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">羁绊图鉴 · 已激活 {{bondActiveCount}}/{{bondCatalogCount}}</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeBondSheet">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <text class="px-mute rs-cat-tip">同队 / 同届羁绊由阵容自动触发（同队 2/3/5 人分档、同届要求选秀年份相差 3 年以内），下面是需要点名集齐的两类。</text>
+      <view wx:for="{{bondCatalogList}}" wx:key="id" class="rs-cat rs-cat--{{item.status}}">
+        <view class="px-row--between">
+          <view class="px-row px-gap8">
+            <text class="rs-bond-type rs-bond-type--{{item.type}}">{{item.typeLabel}}</text>
+            <text class="px-h3">{{item.name}}</text>
+          </view>
+          <text class="rs-cat-status">{{item.statusText}}</text>
+        </view>
+        <text class="rs-bond-bonus">{{item.bonusText}}</text>
+        <text class="px-dim">{{item.memberText}} · 已集齐 {{item.ownedCount}}/{{item.needCount}}</text>
+        <text class="px-mute rs-cat-desc">{{item.desc}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 克制表弹层：4 战术 × 3 防守的克制环 + 我方三种打法的克制结论 -->
+  <view wx:if="{{tacticSheetOpen}}" class="px-mask" bindtap="closeTacticSheet"></view>
+  <view wx:if="{{tacticSheetOpen}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">战术克制表</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeTacticSheet">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <text class="px-dim">{{counterHint}}</text>
+
+      <view class="rs-tc px-mt16">
+        <view class="rs-tc-row rs-tc-row--head">
+          <text class="rs-tc-name">战术</text>
+          <text wx:for="{{matrixDefenses}}" wx:key="key" class="rs-tc-h">{{item.short}}</text>
+        </view>
+        <view wx:for="{{tacticMatrix}}" wx:key="key" class="rs-tc-row">
+          <text class="rs-tc-name px-ellipsis">{{item.short}}</text>
+          <text wx:for="{{item.cells}}" wx:for-item="c" wx:key="key" class="rs-tc-cell {{c.cls}}">{{c.label}}</text>
+        </view>
+      </view>
+      <view wx:for="{{tacticMatrix}}" wx:key="key" class="rs-tc-desc">
+        <text class="px-text">{{item.name}}</text>
+        <text class="px-mute">克「{{item.counterName}}」 · 被「{{item.beatenByName}}」掐 · {{item.desc}}</text>
+      </view>
+
+      <view class="px-divider"></view>
+      <text class="px-panel__title">我方打法 × 对手防守</text>
+      <view wx:for="{{matchupList}}" wx:key="key" class="rs-mu {{item.isCurrent ? 'rs-mu--on' : ''}}">
+        <view class="px-row--between">
+          <text class="px-h3">{{item.name}}{{item.isCurrent ? '（当前）' : ''}}</text>
+        </view>
+        <view wx:for="{{item.rows}}" wx:for-item="r" wx:key="key" class="rs-mu-row">
+          <text class="px-dim rs-mu-def">vs {{r.name}}</text>
+          <text class="px-mute px-grow">{{r.text}}</text>
+          <text class="rs-mu-verdict {{r.cls}}">{{r.verdict}}</text>
+        </view>
+        <text class="px-mute rs-tac-note">{{item.desc}}</text>
+      </view>
+
+      <text class="px-mute rs-tac-note">人盯人不偏科：克制不了谁，也不会被谁白吃，是「读不出对手」时的安全选项。收缩护筐堵禁区、放外线；外线扩防扑三分线、放低位。侦察对手防守策略再挑打法，是这套系统唯一的正解。</text>
+    </scroll-view>
+  </view>
+</view>

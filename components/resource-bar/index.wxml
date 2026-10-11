@@ -1,0 +1,40 @@
+<view class="rb {{compact ? 'rb--compact' : ''}}">
+  <view wx:if="{{showLevel}}" class="rb__lv">
+    <text class="rb__lv-num">Lv{{level}}</text>
+  </view>
+
+  <view class="rb__cell">
+    <view class="rb__ico rb__ico--gold"></view>
+    <text class="rb__num">{{goldText}}</text>
+  </view>
+
+  <view class="rb__cell">
+    <view class="rb__ico rb__ico--diamond"></view>
+    <text class="rb__num">{{diamondText}}</text>
+  </view>
+
+  <view class="rb__cell rb__cell--stamina">
+    <view class="rb__ico rb__ico--stamina {{staminaLow ? 'px-blink' : ''}}"></view>
+    <view class="rb__grow">
+      <view class="rb__line">
+        <text class="rb__num">{{staminaValue}}</text>
+        <text class="rb__max">/{{staminaMax}}</text>
+      </view>
+      <view class="rb__bar">
+        <view class="rb__bar-fill {{staminaLow ? 'rb__bar-fill--low' : ''}}" style="width:{{staminaRatio}}%;"></view>
+      </view>
+    </view>
+    <text wx:if="{{!compact && staminaNext}}" class="rb__next">{{staminaNext}}</text>
+  </view>
+
+  <block wx:if="{{tickets}}">
+    <view class="rb__cell">
+      <view class="rb__ico rb__ico--tn"></view>
+      <text class="rb__num">{{ticketNormal}}</text>
+    </view>
+    <view class="rb__cell">
+      <view class="rb__ico rb__ico--ta"></view>
+      <text class="rb__num">{{ticketAdvanced}}</text>
+    </view>
+  </block>
+</view>

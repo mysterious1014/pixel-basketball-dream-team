@@ -1,0 +1,154 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar />
+
+  <!-- 章节切换 -->
+  <view class="px-row--wrap px-gap12 px-mt16">
+    <view wx:for="{{chapterTabs}}" wx:key="id"
+      class="px-chip st-tab {{chapter === item.id ? 'px-chip--on' : ''}}"
+      data-id="{{item.id}}" bindtap="switchChapter">{{item.name}} {{item.done}}/{{item.total}}</view>
+  </view>
+
+  <!-- 总进度 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">{{chapterName}}</text>
+      <text class="px-mute">总星数 {{totalStars}}/{{starMax}}</text>
+    </view>
+    <text class="px-dim">{{chapterDesc}}</text>
+    <px-progress class="px-mt12" value="{{totalStars}}" max="{{starMax}}" variant="gold" height="{{20}}"
+      caption="赛季征程 {{clearedCount}}/{{stageCount}} 关" label="{{chapterStars}} ★" />
+    <view class="px-row--between px-mt8">
+      <text class="px-mute">三星门槛：净胜 {{starThresholds[2]}} 分</text>
+      <text class="px-mute">体力 {{stamina}}/{{staminaMax}}</text>
+    </view>
+    <view wx:if="{{!rosterReady}}" class="st-warn px-mt8" bindtap="goRoster">
+      {{overCap ? '薪资超出工资帽，点击去调整' : '首发不足 5 人，点击去编排'}}
+    </view>
+  </view>
+
+  <!-- 竞技场入口（第七章 7.4 模式：竞技场 / 异步 PVP，里程碑 2） -->
+  <view wx:if="{{arenaEnabled}}" class="px-panel px-panel--orange px-mt16 st-arena" bindtap="goArena" hover-class="px-btn--active">
+    <view class="px-row--between">
+      <view class="px-col px-gap8 px-grow">
+        <text class="px-h3">竞技场 · 异步天梯</text>
+        <text class="px-mute">{{arenaRankName}} · 积分 {{arenaRating}} · {{arenaDailyText}}</text>
+        <text class="px-mute">进度 {{arenaProgressText}} · 下一位 {{arenaNextName}}</text>
+      </view>
+      <text class="px-btn px-btn--primary px-btn--sm st-arena-btn">进入</text>
+    </view>
+  </view>
+
+  <!-- 关卡节点地图 -->
+  <view class="st-map px-mt16">
+    <view wx:for="{{items}}" wx:key="id" class="st-node">
+      <view class="st-rail">
+        <view class="st-dot {{item.cleared ? 'st-dot--win' : (item.unlocked ? 'st-dot--open' : 'st-dot--lock')}} {{item.boss ? 'st-dot--boss' : ''}}">
+          <text>{{item.cleared ? '✓' : (item.unlocked ? item.index : '×')}}</text>
+        </view>
+        <view wx:if="{{index < items.length - 1}}" class="st-line {{item.cleared ? 'st-line--on' : ''}}"></view>
+      </view>
+
+      <view class="st-card px-panel px-panel--flat {{item.boss ? 'st-card--boss' : ''}} {{!item.unlocked ? 'st-card--lock' : ''}}"
+        data-id="{{item.id}}" bindtap="openDetail" hover-class="{{item.unlocked ? 'px-btn--active' : ''}}">
+        <view class="px-row--between">
+          <text class="px-h3 px-ellipsis">{{item.name}}</text>
+          <text wx:if="{{item.boss}}" class="px-tag px-tag--UR">BOSS</text>
+          <text wx:elif="{{item.cleared}}" class="px-tag px-tag--SSR">{{item.starText}}</text>
+          <text wx:elif="{{!item.unlocked}}" class="px-tag px-tag--N">未解锁</text>
+          <text wx:else class="px-tag px-tag--R">可挑战</text>
+        </view>
+        <view class="px-row--between px-mt8">
+          <text class="px-dim px-ellipsis">对手 {{item.opponent}} · 推荐 OVR {{item.awayOvr}}</text>
+          <text class="px-mute">体力 {{item.staminaCost}}</text>
+        </view>
+        <view wx:if="{{item.bestMargin !== null}}" class="px-mute st-margin">最好净胜 {{item.bestMargin}} 分</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="px-safe-bottom"></view>
+
+  <!-- 关卡详情 -->
+  <view wx:if="{{detail}}" class="px-mask" bindtap="closeDetail"></view>
+  <view wx:if="{{detail}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">{{detail.chapterName}} · {{detail.index}}</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeDetail">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <view class="px-panel px-panel--orange px-panel--flat">
+        <view class="px-row--between">
+          <text class="px-h2">{{detail.name}}</text>
+          <text class="px-tag {{detail.boss ? 'px-tag--UR' : 'px-tag--SR'}}">{{detail.boss ? 'BOSS 战' : '常规赛'}}</text>
+        </view>
+        <view class="st-vs px-mt12">
+          <view class="st-vs-side">
+            <text class="px-mute">我方</text>
+            <text class="px-num">{{starterAvgOvr}}</text>
+            <text class="px-mute">首发均评</text>
+          </view>
+          <text class="st-vs-mid">VS</text>
+          <view class="st-vs-side">
+            <text class="px-mute">{{detail.opponent}}</text>
+            <text class="px-num">{{detail.awayOvr}}</text>
+            <text class="px-mute">推荐 OVR</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 战术侦察（里程碑 2）：对手防守策略是明牌，看懂它再挑打法 -->
+      <view wx:if="{{scout}}" class="px-panel px-panel--flat px-mt16">
+        <view class="px-row--between">
+          <text class="px-panel__title">战术侦察</text>
+          <text class="px-mute">{{scout.counterEnabled ? '克制 +' + scout.bonusPct + '%' : '克制未开启'}}</text>
+        </view>
+        <view class="st-scout-row">
+          <text class="px-mute st-scout-k">对手防守</text>
+          <text class="px-text">{{scout.defenseText}}</text>
+        </view>
+        <view class="st-scout-row">
+          <text class="px-mute st-scout-k">对手打法</text>
+          <text class="px-text">{{scout.playStyleName}}</text>
+        </view>
+        <view class="st-scout-row">
+          <text class="px-mute st-scout-k">我方 {{scout.myPlayStyleName}}</text>
+          <text class="px-mute px-grow">{{scout.counterText}}</text>
+          <text class="st-scout-verdict {{scout.verdictCls}}">{{scout.verdict}}</text>
+        </view>
+        <view class="st-scout-row">
+          <text class="px-mute st-scout-k">得分价值</text>
+          <text class="px-mute px-grow">{{scout.valueText}}</text>
+        </view>
+        <view class="px-divider"></view>
+        <text class="st-scout-sug">{{scout.suggestText}}</text>
+        <text class="px-mute st-scout-note">去阵容页把防守策略调成建议的那一套，再把打法换成能惩罚「{{scout.defenseName}}」的：收缩护筐怕中投与三分，外线扩防怕低位与突破。</text>
+      </view>
+
+      <view class="px-panel px-panel--flat px-mt16">
+        <text class="px-panel__title">对手首发</text>
+        <view wx:for="{{detail.away}}" wx:key="cardId" class="st-away">
+          <text class="st-away-pos">{{item.position}}</text>
+          <text class="px-text px-grow px-ellipsis">{{item.name}}</text>
+          <text class="px-mute">#{{item.number}}</text>
+          <text class="px-num st-away-ovr">{{item.ovr}}</text>
+        </view>
+      </view>
+
+      <view class="px-panel px-panel--flat px-mt16">
+        <text class="px-panel__title">奖励</text>
+        <text class="px-dim">{{detail.rewardText}}</text>
+        <text wx:if="{{detail.firstClear}}" class="st-first px-mt8">{{detail.firstClearText}}</text>
+        <view class="px-divider"></view>
+        <text class="px-mute">消耗体力 {{detail.staminaCost}} · 当前 {{stamina}}{{staminaNext ? '（' + staminaNext + '）' : ''}}</text>
+        <view class="px-mt8">
+          <text class="px-mute">星级：净胜 {{starThresholds[0]}} 分 ★ / {{starThresholds[1]}} 分 ★★ / {{starThresholds[2]}} 分 ★★★</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="st-foot">
+      <view class="px-btn px-btn--primary px-btn--block {{detail.canPlay && rosterReady ? '' : 'px-btn--disabled'}}" bindtap="startBattle">
+        {{detail.cleared ? '再战一场' : '出战'}}
+      </view>
+    </view>
+  </view>
+</view>

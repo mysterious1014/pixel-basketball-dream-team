@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "px-progress": "/components/px-progress/index"
+  },
+  "navigationBarTitleText": "比赛",
+  "disableScroll": true
+}

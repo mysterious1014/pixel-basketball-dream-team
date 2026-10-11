@@ -1,0 +1,49 @@
+/* pages/arena/arena.wxss —— 竞技场（异步 PVP 天梯）
+ * 全部用全局像素设计系统的变量与工具类（app.wxss），这里只补本页特有的布局。
+ * 第六章：禁渐变、禁 3D、硬边角；克制结论色用全局 .tc-good/.tc-ok/.tc-warn/.tc-bad。 */
+
+.ar-rank {
+  flex: none; width: 76rpx; height: 76rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26rpx; background: var(--navy900);
+  border: 4rpx solid currentColor;
+  box-shadow: inset 0 0 0 2rpx rgba(255,255,255,0.08);
+}
+.ar-rating { align-items: flex-end; }
+.ar-cond { gap: 12rpx; }
+.ar-warn { font-size: 22rpx; color: var(--danger); }
+.ar-ok { font-size: 22rpx; color: var(--hp); }
+.ar-sub { display: block; margin-bottom: 10rpx; letter-spacing: 1rpx; }
+/* 竞技币入口：做成可点的样子（下划线 + 手型），但颜色仍只用调色板里的 --gold（第六章限色） */
+.ar-coin-link { color: var(--gold); text-decoration: underline; }
+.ar-note { display: block; margin-top: 10rpx; font-size: 20rpx; line-height: 1.7; }
+
+/* ---------- 天梯卡片 ---------- */
+.ar-card { margin-bottom: 16rpx; }
+.ar-card--next { border-color: var(--orange); box-shadow: 0 0 0 4rpx var(--navy900), inset 0 0 0 2rpx rgba(255,138,31,0.35); }
+.ar-card--lock { opacity: 0.52; }
+.ar-card-head { min-width: 0; }
+.ar-idx {
+  flex: none; width: 40rpx; height: 40rpx; display: flex; align-items: center; justify-content: center;
+  font-size: 20rpx; color: var(--navy900); background: var(--navy500); border: 3rpx solid var(--line);
+}
+.ar-verdict { flex: none; min-width: 88rpx; text-align: right; font-size: 22rpx; }
+.ar-lock { display: block; margin-top: 8rpx; }
+
+/* ---------- 历史 ---------- */
+.ar-hist { margin-bottom: 12rpx; }
+.ar-hist-name { font-size: 26rpx; }
+
+/* ---------- 详情弹层 ---------- */
+.ar-desc { display: block; margin-top: 10rpx; line-height: 1.7; }
+.ar-vs { display: flex; align-items: center; justify-content: space-between; }
+.ar-vs-side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.ar-vs-mid { flex: none; font-size: 28rpx; color: var(--orange); letter-spacing: 2rpx; padding: 0 12rpx; }
+.ar-scout-row { display: flex; align-items: center; gap: 12rpx; padding: 6rpx 0; }
+.ar-scout-k { width: 140rpx; flex: none; }
+.ar-sug { display: block; font-size: 24rpx; color: var(--gold); line-height: 1.6; }
+.ar-lineup { display: flex; align-items: center; gap: 12rpx; padding: 10rpx 0; }
+.ar-lineup + .ar-lineup { border-top: 2rpx solid var(--line-soft); }
+.ar-lineup-ovr { flex: none; font-size: 26rpx; width: 64rpx; text-align: right; }
+.ar-first { display: block; font-size: 22rpx; color: var(--gold); }
+.ar-foot { padding: 20rpx; border-top: 4rpx solid var(--line-soft); background: var(--navy800); }

@@ -1,0 +1,35 @@
+/* components/resource-bar/index.wxss —— 像素资源条（第六章：硬边、无渐变、有限调色板） */
+.rb {
+  display: flex; align-items: center; gap: 14rpx; flex-wrap: wrap;
+  padding: 12rpx 14rpx;
+  background: var(--navy800);
+  border: 4rpx solid var(--line);
+  box-shadow: 0 0 0 4rpx var(--navy900), inset 0 0 0 2rpx var(--line-soft);
+}
+.rb--compact { padding: 8rpx 10rpx; gap: 10rpx; }
+
+.rb__lv {
+  min-width: 68rpx; padding: 4rpx 8rpx; text-align: center;
+  background: var(--navy600); border: 3rpx solid var(--gold);
+}
+.rb__lv-num { font-size: 20rpx; color: var(--gold); letter-spacing: 1rpx; }
+
+.rb__cell { display: flex; align-items: center; gap: 8rpx; }
+.rb__cell--stamina { flex: 1; min-width: 180rpx; }
+.rb__grow { flex: 1; min-width: 0; }
+.rb__line { display: flex; align-items: baseline; gap: 2rpx; }
+
+.rb__ico { width: 18rpx; height: 18rpx; display: inline-block; flex: none; }
+.rb__ico--gold { background: var(--gold); box-shadow: inset -4rpx -4rpx 0 rgba(0,0,0,0.35); }
+.rb__ico--diamond { background: #7ee8ff; transform: rotate(45deg); box-shadow: inset -4rpx -4rpx 0 rgba(0,0,0,0.3); }
+.rb__ico--stamina { background: var(--hp); box-shadow: inset -4rpx -4rpx 0 rgba(0,0,0,0.3); }
+.rb__ico--tn { background: var(--n); box-shadow: inset -4rpx -4rpx 0 rgba(0,0,0,0.3); }
+.rb__ico--ta { background: var(--ur); box-shadow: inset -4rpx -4rpx 0 rgba(0,0,0,0.3); }
+
+.rb__num { font-size: 24rpx; color: var(--text); letter-spacing: 1rpx; }
+.rb__max { font-size: 18rpx; color: var(--text-mute); }
+.rb__next { font-size: 18rpx; color: var(--text-mute); flex: none; }
+
+.rb__bar { height: 10rpx; margin-top: 4rpx; background: var(--navy900); border: 2rpx solid var(--line-soft); overflow: hidden; }
+.rb__bar-fill { height: 100%; background: var(--hp); transition: width 200ms steps(6); }
+.rb__bar-fill--low { background: var(--danger); }

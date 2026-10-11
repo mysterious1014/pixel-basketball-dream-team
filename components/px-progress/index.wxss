@@ -1,0 +1,4 @@
+/* components/px-progress/index.wxss —— 进度条外框（条体样式复用全局 .px-bar） */
+.pp { width: 100%; }
+.pp__cap { display: flex; justify-content: space-between; font-size: 22rpx; color: var(--text-dim); margin-bottom: 8rpx; letter-spacing: 1rpx; }
+.pp__cap--over { color: var(--danger); }

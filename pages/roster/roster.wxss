@@ -1,0 +1,95 @@
+/* pages/roster/roster.wxss —— 阵容编辑布局（硬边像素槽位 + 选中高亮 + 底部弹层） */
+.rs-panel--over { border-color: var(--danger); box-shadow: 0 0 0 4rpx var(--navy900), 0 6rpx 0 0 rgba(0,0,0,0.45), inset 0 0 0 2rpx rgba(255,77,94,0.35); }
+.rs-cap-num { font-size: 40rpx; color: var(--gold); letter-spacing: 2rpx; text-shadow: 4rpx 4rpx 0 rgba(0,0,0,0.7); }
+.rs-cap-num--over { color: var(--danger); }
+.rs-cap-slash { font-size: 24rpx; color: var(--text-mute); }
+.rs-warn { font-size: 22rpx; color: var(--danger); }
+.rs-tip { font-size: 22rpx; color: var(--orange); }
+
+.rs-line { display: flex; gap: 8rpx; }
+.rs-slot {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4rpx;
+  padding: 10rpx 2rpx; background: var(--navy800); border: 3rpx solid var(--line-soft);
+}
+.rs-slot--empty { border-style: dashed; background: rgba(7,12,28,0.55); }
+.rs-slot--off { border-color: var(--orange); }
+.rs-slot--on { border-color: var(--gold); background: var(--navy600); box-shadow: 0 0 0 3rpx var(--orange); }
+.rs-slot-pos { font-size: 18rpx; color: var(--orange); letter-spacing: 1rpx; }
+.rs-slot-hole { width: 100rpx; height: 100rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; color: var(--text-mute); background: var(--navy900); border: 3rpx dashed var(--line-soft); }
+.rs-slot-name { width: 100%; text-align: center; font-size: 18rpx; color: var(--text); }
+.rs-slot-ovr { font-size: 22rpx; font-weight: bold; }
+.rs-slot-sal { font-size: 16rpx; color: var(--text-mute); }
+
+.rs-bench { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10rpx; }
+.rs-bslot {
+  display: flex; flex-direction: column; align-items: center; gap: 4rpx; padding: 8rpx 2rpx;
+  background: var(--navy800); border: 3rpx solid var(--line-soft); min-height: 150rpx;
+}
+.rs-bslot--on, .rs-bslot.rs-slot--on { border-color: var(--gold); box-shadow: 0 0 0 3rpx var(--orange); }
+.rs-bslot-pos { font-size: 16rpx; color: var(--text-mute); }
+.rs-bslot-name { width: 100%; text-align: center; font-size: 18rpx; color: var(--text-dim); }
+.rs-bslot-ovr { font-size: 20rpx; font-weight: bold; }
+.rs-bslot-add { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 40rpx; color: var(--text-mute); }
+
+.rs-style-desc { display: block; margin-top: 10rpx; }
+
+.rs-act-row { display: flex; gap: 10rpx; margin-top: 12rpx; flex-wrap: wrap; }
+
+.rs-filter { display: flex; flex-wrap: wrap; gap: 10rpx; padding: 16rpx 20rpx; border-bottom: 3rpx solid var(--line-soft); }
+.rs-filter-chip { height: 40rpx; padding: 0 12rpx; font-size: 20rpx; }
+
+.rs-pick--off { opacity: 0.72; }
+/* ---------- 羁绊（第七章 7.3，里程碑 2）----------
+ * 只用 app.wxss 里已有的调色板变量（第六章：16 色、禁渐变），四类羁绊各占一色便于扫读。 */
+.rs-bond { display: flex; gap: 12rpx; align-items: flex-start; padding: 12rpx 0; border-bottom: 2rpx solid var(--line-soft); }
+.rs-bond:last-of-type { border-bottom: 0; }
+.rs-bond-type {
+  flex: none; margin-top: 2rpx; padding: 4rpx 8rpx; font-size: 18rpx; letter-spacing: 1rpx;
+  color: var(--navy900); background: var(--text-mute); border: 2rpx solid var(--navy900);
+  box-shadow: 3rpx 3rpx 0 rgba(0,0,0,0.45);
+}
+.rs-bond-type--team { background: var(--r); }
+.rs-bond-type--era { background: var(--sr); }
+.rs-bond-type--rival { background: var(--danger); }
+/* 时刻卡稀有度角标（里程碑 2）：颜色复用 app.wxss 的 --n/--r/--sr/--ssr/--ur，不新造颜色 */
+.rs-moment-tag--N { background: var(--n); }
+.rs-moment-tag--R { background: var(--r); }
+.rs-moment-tag--SR { background: var(--sr); }
+.rs-moment-tag--SSR { background: var(--ssr); }
+.rs-moment-tag--UR { background: var(--ur); }
+.rs-bond-type--combo { background: var(--gold); }
+.rs-bond-bonus { font-size: 22rpx; color: var(--hp); }
+.rs-bond-note { display: block; margin-top: 10rpx; font-size: 20rpx; }
+.rs-bond-empty { display: flex; flex-direction: column; gap: 8rpx; padding: 6rpx 0; }
+
+.rs-cat-tip { display: block; padding: 4rpx 0 14rpx; font-size: 20rpx; line-height: 1.6; }
+.rs-cat { padding: 12rpx; margin-bottom: 12rpx; background: var(--navy800); border: 3rpx solid var(--line-soft); }
+.rs-cat--on { border-color: var(--gold); box-shadow: inset 0 0 0 2rpx rgba(255,210,63,0.3); }
+.rs-cat--owned { border-color: var(--hp); }
+.rs-cat--none { opacity: 0.62; }
+.rs-cat-status { flex: none; font-size: 18rpx; color: var(--text-mute); }
+.rs-cat--on .rs-cat-status { color: var(--gold); }
+.rs-cat--owned .rs-cat-status { color: var(--hp); }
+.rs-cat-desc { display: block; margin-top: 6rpx; font-size: 20rpx; line-height: 1.6; }
+
+/* ---------- 战术克制（里程碑 2） ---------- */
+.rs-tac-sub { display: block; margin-bottom: 10rpx; letter-spacing: 1rpx; }
+.rs-tac-now { display: flex; align-items: center; gap: 12rpx; margin-top: 12rpx; }
+.rs-tac-now-name { color: var(--gold); }
+.rs-tac-note { display: block; margin-top: 10rpx; font-size: 20rpx; line-height: 1.6; }
+
+.rs-mu { padding: 12rpx; margin-bottom: 12rpx; background: var(--navy800); border: 3rpx solid var(--line-soft); }
+.rs-mu--on { border-color: var(--orange); box-shadow: inset 0 0 0 2rpx rgba(255,138,31,0.3); }
+.rs-mu-row { display: flex; align-items: center; gap: 12rpx; padding: 6rpx 0; }
+.rs-mu-def { width: 150rpx; flex: none; }
+.rs-mu-verdict { flex: none; width: 88rpx; text-align: right; font-size: 22rpx; }
+
+.rs-tc { background: var(--navy800); border: 3rpx solid var(--line-soft); padding: 8rpx; }
+.rs-tc-row { display: flex; align-items: center; gap: 8rpx; padding: 6rpx 0; }
+.rs-tc-row + .rs-tc-row { border-top: 2rpx solid var(--line-soft); }
+.rs-tc-row--head { border-bottom: 2rpx solid var(--line); }
+.rs-tc-name { width: 96rpx; flex: none; font-size: 22rpx; color: var(--text-dim); }
+.rs-tc-h { flex: 1; text-align: center; font-size: 20rpx; color: var(--text-mute); }
+.rs-tc-cell { flex: 1; }
+.rs-tc-desc { display: flex; flex-direction: column; gap: 2rpx; padding: 8rpx 0; }
+.rs-tc-desc + .rs-tc-desc { border-top: 2rpx solid var(--line-soft); }

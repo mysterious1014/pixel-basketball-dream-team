@@ -1,0 +1,7 @@
+.pxp { position: relative; overflow: hidden; border: 3rpx solid #07080f; box-shadow: 0 0 0 2rpx rgba(255,255,255,0.06); background: #101a35; }
+.pxp__img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.pxp--dim { filter: grayscale(0.9) brightness(0.5); }
+.pxp__fb { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.pxp__fb-trim { position: absolute; left: 0; right: 0; top: 0; height: 18%; }
+.pxp__fb-head { position: absolute; left: 32%; top: 22%; width: 36%; height: 26%; background: #d9a878; border: 4rpx solid; }
+.pxp__fb-num { position: absolute; left: 0; right: 0; bottom: 8%; text-align: center; font-size: 40rpx; color: #f6f7ff; font-weight: bold; text-shadow: 3rpx 3rpx 0 rgba(0,0,0,0.6); letter-spacing: 2rpx; }

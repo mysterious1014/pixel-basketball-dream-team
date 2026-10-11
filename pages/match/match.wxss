@@ -1,0 +1,135 @@
+/* pages/match/match.wxss —— 比赛页：固定高度三段式（记分牌 / 球场 / 直播），单手可控 */
+page { height: 100%; }
+.mt { display: flex; flex-direction: column; height: 100vh; background: var(--navy900); padding: 12rpx 16rpx 16rpx; box-sizing: border-box; }
+
+.mt-err { margin: auto 0; }
+.mt-err-msg { display: block; margin-top: 16rpx; line-height: 1.7; }
+
+/* 记分牌 */
+.mt-board {
+  display: flex; align-items: center; gap: 10rpx;
+  padding: 12rpx 16rpx; background: var(--navy800);
+  border: 4rpx solid var(--line); box-shadow: 0 0 0 4rpx var(--navy900), inset 0 0 0 2rpx var(--line-soft);
+}
+.mt-team { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2rpx; }
+.mt-team--right { align-items: flex-end; }
+.mt-team-name { font-size: 20rpx; color: var(--text-dim); max-width: 100%; }
+.mt-score { font-size: 46rpx; font-weight: bold; color: var(--gold); letter-spacing: 2rpx; text-shadow: 4rpx 4rpx 0 rgba(0,0,0,0.7); line-height: 1.1; }
+.mt-score--away { color: var(--text); }
+.mt-mid { width: 150rpx; flex: none; display: flex; flex-direction: column; align-items: center; gap: 2rpx; }
+.mt-q { font-size: 22rpx; color: var(--orange); letter-spacing: 1rpx; }
+.mt-vs { font-size: 20rpx; color: var(--text-mute); }
+.mt-stage { font-size: 18rpx; color: var(--text-mute); max-width: 150rpx; }
+@keyframes mt-flash { 0% { color: var(--gold); } 50% { color: #fff; } 100% { color: var(--gold); } }
+.mt-flash-a, .mt-flash-b { animation: mt-flash 260ms steps(3) 1; }
+
+/* 球场 Canvas */
+.mt-court { position: relative; margin-top: 12rpx; height: 320rpx; background: var(--navy900); border: 4rpx solid var(--line); box-shadow: 0 0 0 4rpx var(--navy900); overflow: hidden; }
+.mt-canvas { display: block; width: 100%; height: 100%; }
+.mt-loading { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-size: 24rpx; color: var(--gold); }
+
+.mt-prog { margin-top: 10rpx; }
+
+/* 控制条 */
+.mt-ctrl { display: flex; gap: 10rpx; margin-top: 10rpx; }
+.mt-ctrl-btn { flex: 1; min-width: 0; }
+
+/* 文字直播 */
+.mt-log-head { display: flex; align-items: center; justify-content: space-between; margin-top: 14rpx; }
+.mt-log { flex: 1; min-height: 120rpx; margin-top: 8rpx; background: var(--navy800); border: 3rpx solid var(--line-soft); padding: 10rpx 12rpx; }
+.mt-item { display: flex; gap: 10rpx; padding: 8rpx 0; font-size: 22rpx; line-height: 1.55; }
+.mt-item + .mt-item { border-top: 2rpx solid rgba(42,58,107,0.55); }
+.mt-item-q { width: 76rpx; flex: none; color: var(--text-mute); font-size: 18rpx; }
+.mt-item-text { flex: 1; color: var(--text-dim); }
+.mt-item.mt-log--good .mt-item-text { color: var(--hp); }
+.mt-item.mt-log--bad .mt-item-text { color: var(--danger); }
+.mt-item.mt-log--miss .mt-item-text { color: var(--text-mute); }
+.mt-item.mt-log--info .mt-item-text { color: var(--orange); }
+.mt-item.mt-log--final .mt-item-text { color: var(--gold); font-size: 24rpx; }
+
+/* 结算 */
+.mt-mask { z-index: 960; }
+.mt-modal {
+  z-index: 961; left: 24rpx; right: 24rpx; top: 50%; transform: translateY(-50%);
+  max-height: 86vh; display: flex; flex-direction: column; padding: 0;
+}
+.mt-modal-body { flex: 1; min-height: 0; max-height: 70vh; padding: 20rpx; }
+.mt-modal-foot { display: flex; gap: 10rpx; padding: 16rpx 20rpx; border-top: 4rpx solid var(--line-soft); background: var(--navy700); }
+
+.mt-res { display: flex; flex-direction: column; align-items: center; gap: 6rpx; padding: 20rpx; background: var(--navy900); border: 4rpx solid var(--line); }
+.mt-res--win { border-color: var(--gold); }
+.mt-res--lose { border-color: var(--danger); }
+.mt-res-title { font-size: 44rpx; letter-spacing: 6rpx; color: var(--gold); text-shadow: 4rpx 4rpx 0 rgba(0,0,0,0.7); }
+.mt-res--lose .mt-res-title { color: var(--danger); }
+.mt-res-score { display: flex; align-items: baseline; gap: 12rpx; }
+.mt-res-num { font-size: 52rpx; color: var(--text); font-weight: bold; }
+.mt-res-colon { font-size: 32rpx; color: var(--text-mute); }
+.mt-res-stars { font-size: 30rpx; color: var(--gold); letter-spacing: 4rpx; }
+
+.mt-sec { margin-top: 18rpx; }
+.mt-sec-title { display: block; font-size: 24rpx; color: var(--gold); letter-spacing: 2rpx; margin-bottom: 8rpx; }
+.mt-kv { display: flex; justify-content: space-between; padding: 6rpx 0; }
+.mt-kv + .mt-kv { border-top: 2rpx solid var(--line-soft); }
+.mt-kv-v { font-size: 24rpx; color: var(--orange); }
+.mt-mvp { display: flex; flex-direction: column; gap: 4rpx; }
+
+.mt-qrow { display: flex; align-items: center; padding: 6rpx 0; }
+.mt-qrow + .mt-qrow { border-top: 2rpx solid var(--line-soft); }
+.mt-qrow--head text { color: var(--text-mute); font-size: 18rpx; }
+.mt-qc1 { width: 90rpx; flex: none; font-size: 20rpx; color: var(--text-dim); }
+.mt-qc { flex: 1; text-align: center; font-size: 20rpx; color: var(--text); }
+.mt-sc1 { flex: 1; min-width: 0; font-size: 20rpx; color: var(--text-dim); }
+.mt-sc { width: 76rpx; flex: none; text-align: center; font-size: 20rpx; color: var(--text); }
+
+.mt-seed { display: flex; align-items: center; gap: 10rpx; padding: 10rpx; background: var(--navy900); border: 3rpx dashed var(--line-soft); }
+.mt-seed-tip { display: block; margin-top: 8rpx; line-height: 1.7; }
+
+/* ---------- 本场羁绊（第七章 7.3，里程碑 2）---------- */
+.mt-bond-side { padding: 8rpx 0; }
+.mt-bond-side + .mt-bond-side { border-top: 2rpx solid var(--line-soft); }
+.mt-bond { display: flex; gap: 10rpx; align-items: flex-start; padding: 8rpx 0; }
+.mt-bond-tag {
+  flex: none; margin-top: 2rpx; padding: 2rpx 8rpx; font-size: 18rpx; letter-spacing: 1rpx;
+  color: var(--navy900); background: var(--text-mute); border: 2rpx solid var(--navy900);
+}
+.mt-bond-tag--team { background: var(--r); }
+.mt-bond-tag--era { background: var(--sr); }
+.mt-bond-tag--rival { background: var(--danger); }
+.mt-bond-tag--combo { background: var(--gold); }
+.mt-bond-bonus { font-size: 20rpx; color: var(--hp); }
+
+/* 名场面时刻卡的稀有度角标：颜色直接复用 app.wxss 里已有的 --n/--r/--sr/--ssr/--ur
+ * （就是 config.palette.rarity 那 5 色），不新造颜色 —— 第六章限色、禁渐变。 */
+.mt-moment-tag--N { background: var(--n); }
+.mt-moment-tag--R { background: var(--r); }
+.mt-moment-tag--SR { background: var(--sr); }
+.mt-moment-tag--SSR { background: var(--ssr); }
+.mt-moment-tag--UR { background: var(--ur); }
+
+/* 播放控制条上的时长提示（1× 约 2.4 分钟） */
+.mt-ctrl-pace { flex: none; align-self: center; font-size: 20rpx; color: var(--text-mute); }
+.mt-bond-none { display: block; padding: 6rpx 0; font-size: 20rpx; }
+.mt-bond-note { display: block; margin-top: 8rpx; font-size: 20rpx; }
+
+/* ---------- 战术克制 / 竞技场结算（第七章 7.4，里程碑 2）---------- */
+/* 战报角标：像素描边框，颜色只用 --hp / --danger（第六章限色、禁渐变） */
+.mt-tc { flex: none; align-self: flex-start; margin-top: 2rpx; padding: 0 6rpx; font-size: 18rpx; line-height: 1.7; letter-spacing: 1rpx; border: 2rpx solid currentColor; }
+.mt-tc--good { color: var(--hp); }
+.mt-tc--bad { color: var(--danger); }
+
+.mt-res-rank { font-size: 26rpx; color: var(--orange); letter-spacing: 2rpx; }
+
+.mt-arena-delta { display: flex; flex-direction: column; align-items: center; gap: 4rpx; padding: 10rpx 0 14rpx; }
+.mt-arena-num { font-size: 48rpx; font-weight: bold; letter-spacing: 2rpx; text-shadow: 4rpx 4rpx 0 rgba(0,0,0,0.7); }
+.mt-delta--up { color: var(--hp); }
+.mt-delta--down { color: var(--danger); }
+.mt-arena-fw { display: block; margin-top: 10rpx; font-size: 22rpx; color: var(--gold); }
+
+.mt-tcrow { display: flex; align-items: center; gap: 10rpx; padding: 8rpx 0; }
+.mt-tcrow + .mt-tcrow { border-top: 2rpx solid var(--line-soft); }
+.mt-tcside { width: 130rpx; flex: none; font-size: 20rpx; color: var(--text-dim); }
+.mt-tccount { flex: none; font-size: 20rpx; color: var(--text); }
+
+.mt-note { display: block; margin-top: 10rpx; font-size: 20rpx; line-height: 1.7; }
+
+.mt-dyn-note { display: block; margin-top: 10rpx; font-size: 20rpx; color: var(--gold); }

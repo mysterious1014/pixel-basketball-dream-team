@@ -1,0 +1,57 @@
+/* pages/home/home.wxss —— 主页布局（375×667 基准，单手可达：主操作集中在上半屏） */
+.hm-hero-sub { margin-top: 6rpx; }
+.hm-hero-badge { display: flex; flex-direction: column; align-items: center; padding: 8rpx 18rpx; background: var(--navy900); border: 3rpx solid var(--gold); }
+.hm-hero-ovr { font-size: 44rpx; color: var(--gold); font-weight: bold; line-height: 1.1; }
+
+.hm-quick {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6rpx;
+  padding: 18rpx 0; background: var(--navy700);
+  border: 4rpx solid var(--line);
+  box-shadow: 0 6rpx 0 0 var(--navy900), inset 0 0 0 2rpx var(--line-soft);
+}
+.hm-quick-ico {
+  width: 56rpx; height: 56rpx; line-height: 56rpx; text-align: center;
+  font-size: 28rpx; color: var(--navy900); background: var(--orange);
+  border: 3rpx solid var(--gold);
+}
+.hm-quick-label { font-size: 24rpx; color: var(--text); letter-spacing: 2rpx; }
+
+.hm-line { display: flex; gap: 8rpx; }
+.hm-slot {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4rpx;
+  padding: 8rpx 2rpx; background: var(--navy800); border: 3rpx solid var(--line-soft);
+}
+.hm-slot--empty { border-style: dashed; background: rgba(7,12,28,0.6); }
+.hm-slot--off { border-color: var(--orange); }
+.hm-slot-pos { font-size: 18rpx; color: var(--orange); letter-spacing: 1rpx; }
+.hm-slot-hole { width: 96rpx; height: 96rpx; display: flex; align-items: center; justify-content: center; background: var(--navy900); border: 3rpx dashed var(--line-soft); }
+.hm-slot-q { font-size: 36rpx; color: var(--text-mute); }
+.hm-slot-name { width: 100%; text-align: center; font-size: 18rpx; color: var(--text-dim); }
+.hm-slot-ovr { font-size: 20rpx; font-weight: bold; }
+
+.hm-warn { font-size: 22rpx; color: var(--danger); }
+
+.hm-next { margin-top: 12rpx; align-items: flex-end; }
+.hm-next-btn { width: 150rpx; flex: none; }
+
+.hm-slash { font-size: 24rpx; color: var(--text-mute); }
+.hm-mt6 { display: block; margin-top: 6rpx; }
+
+.hm-stats { display: flex; }
+.hm-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.hm-stat + .hm-stat { border-left: 3rpx solid var(--line-soft); }
+.hm-stat-v { font-size: 32rpx; color: var(--orange); font-weight: bold; }
+
+.hm-last { font-size: 26rpx; color: var(--text-dim); }
+.hm-last--win { color: var(--hp); }
+
+.hm-notice { display: flex; align-items: center; gap: 10rpx; padding: 8rpx 0; }
+.hm-notice + .hm-notice { border-top: 2rpx solid var(--line-soft); }
+
+/* ---------- 竞技场入口（里程碑 2） ---------- */
+.hm-arena { display: block; }
+.hm-arena-body { margin-top: 12rpx; align-items: flex-end; }
+.hm-arena-btn { width: 150rpx; flex: none; margin-left: 16rpx; }
+.hm-arena-rank { color: var(--gold); }
+
+.hm-legal { padding: 12rpx; text-align: center; }

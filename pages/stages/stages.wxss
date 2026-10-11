@@ -1,0 +1,45 @@
+/* pages/stages/stages.wxss —— 关卡地图（左侧像素轨道 + 节点，右侧关卡卡） */
+.st-tab { height: 52rpx; padding: 0 18rpx; font-size: 22rpx; }
+.st-warn { font-size: 22rpx; color: var(--danger); }
+
+.st-map { display: flex; flex-direction: column; }
+.st-node { display: flex; gap: 16rpx; }
+.st-rail { width: 44rpx; flex: none; display: flex; flex-direction: column; align-items: center; }
+.st-dot {
+  width: 44rpx; height: 44rpx; flex: none; display: flex; align-items: center; justify-content: center;
+  font-size: 22rpx; color: var(--navy900); background: var(--navy600);
+  border: 4rpx solid var(--line);
+}
+.st-dot--win { background: var(--hp); border-color: #7dffab; }
+.st-dot--open { background: var(--orange); border-color: var(--gold); }
+.st-dot--lock { background: var(--navy700); color: var(--text-mute); border-color: var(--line-soft); }
+.st-dot--boss { border-color: var(--ur); }
+.st-line { flex: 1; width: 6rpx; min-height: 24rpx; background: var(--line-soft); }
+.st-line--on { background: var(--hp); }
+
+.st-card { flex: 1; min-width: 0; margin-bottom: 16rpx; }
+.st-card--boss { border-color: var(--ur); }
+.st-card--lock { opacity: 0.5; }
+.st-margin { display: block; margin-top: 6rpx; }
+
+.st-vs { display: flex; align-items: center; justify-content: space-between; }
+.st-vs-side { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.st-vs-mid { font-size: 28rpx; color: var(--orange); letter-spacing: 2rpx; padding: 0 12rpx; }
+
+.st-away { display: flex; align-items: center; gap: 12rpx; padding: 10rpx 0; }
+.st-away + .st-away { border-top: 2rpx solid var(--line-soft); }
+.st-away-pos { width: 56rpx; flex: none; font-size: 20rpx; color: var(--orange); }
+.st-away-ovr { font-size: 26rpx; width: 60rpx; text-align: right; }
+.st-first { display: block; font-size: 22rpx; color: var(--gold); }
+
+.st-foot { padding: 20rpx; border-top: 4rpx solid var(--line-soft); background: var(--navy800); }
+
+/* ---------- 竞技场入口 + 战术侦察（里程碑 2） ---------- */
+.st-arena { display: block; }
+.st-arena-btn { flex: none; margin-left: 16rpx; }
+
+.st-scout-row { display: flex; align-items: center; gap: 12rpx; padding: 6rpx 0; }
+.st-scout-k { width: 150rpx; flex: none; }
+.st-scout-verdict { flex: none; width: 88rpx; text-align: right; font-size: 22rpx; }
+.st-scout-sug { display: block; font-size: 24rpx; color: var(--gold); }
+.st-scout-note { display: block; margin-top: 10rpx; font-size: 20rpx; line-height: 1.6; }

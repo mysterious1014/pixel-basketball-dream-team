@@ -1,0 +1,22 @@
+<view class="px-screen lc" bindtap="enter">
+  <view class="lc__logo px-pop">
+    <image class="lc__img" src="/assets/ui/logo.png" mode="aspectFit" />
+  </view>
+
+  <view class="lc__title">{{gameName}}</view>
+  <view class="lc__sub">{{gameNameEn}}</view>
+
+  <view class="lc__scan"></view>
+
+  <view class="lc__meta">
+    <text class="px-mute">v{{version}} · {{milestone}}</text>
+    <text class="px-mute">卡牌总数 {{cardTotal}} · 已收集 {{owned}}</text>
+  </view>
+
+  <view class="lc__tip px-blink">{{hasSave ? '继续执教 · Lv' + level : '点击开始执教'}}</view>
+
+  <view class="lc__legal">
+    <text class="lc__legal-line">{{dataSourceLabel}}</text>
+    <text class="lc__legal-line">{{legalNote}}</text>
+  </view>
+</view>

@@ -1,0 +1,94 @@
+/* pages/recruit/recruit.wxss —— 招募页样式（第六章：硬边像素、steps() 逐帧翻牌、禁用 3D 透视） */
+.rq-pool { height: 52rpx; padding: 0 20rpx; font-size: 24rpx; }
+
+.rq-hero { overflow: hidden; padding: 0; }
+.rq-hero-stripes {
+  height: 14rpx;
+  background: repeating-linear-gradient(90deg, var(--orange) 0 16rpx, var(--gold) 16rpx 32rpx, var(--navy900) 32rpx 48rpx);
+}
+.rq-hero-body { padding: 22rpx 20rpx 24rpx; }
+.rq-hero-desc { display: block; margin-top: 10rpx; }
+.rq-hero-tags { margin-top: 14rpx; }
+.rq-hero-ticket { display: block; margin-top: 14rpx; }
+
+.rq-rate-head, .rq-rate-row { display: flex; align-items: center; gap: 10rpx; padding: 8rpx 0; }
+.rq-rate-head { border-bottom: 3rpx solid var(--line-soft); }
+.rq-rate-head text { font-size: 20rpx; color: var(--text-mute); }
+.rq-rate-row + .rq-rate-row { border-top: 2rpx solid rgba(42,58,107,0.6); }
+.rq-rate-c1 { width: 110rpx; flex: none; }
+.rq-rate-c2 { width: 120rpx; flex: none; font-size: 24rpx; color: var(--gold); }
+.rq-rate-c3 { flex: 1; }
+.rq-rate-zero { color: var(--text-mute); }
+.rq-rate-note { display: block; margin-top: 12rpx; line-height: 1.7; }
+
+.rq-prd { display: block; margin-top: 10rpx; line-height: 1.7; }
+
+.rq-btn { min-height: 96rpx; font-size: 28rpx; }
+
+.rq-history { display: flex; flex-direction: column; }
+.rq-hitem { display: flex; align-items: center; gap: 12rpx; padding: 12rpx 0; }
+.rq-hitem + .rq-hitem { border-top: 2rpx solid var(--line-soft); }
+.rq-hbar { width: 8rpx; height: 32rpx; flex: none; }
+.rq-hname { flex: 1; font-size: 24rpx; color: var(--text); }
+.rq-hrar { width: 70rpx; flex: none; font-size: 22rpx; text-align: right; }
+
+/* ---------- 结果弹层 ---------- */
+.rq-mask { z-index: 950; }
+.rq-result {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 951;
+  display: flex; flex-direction: column;
+  padding: 30rpx 24rpx 40rpx;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 2rpx, rgba(0,0,0,0) 2rpx 8rpx),
+    linear-gradient(180deg, #131d3d 0%, #070c1c 100%);
+}
+.rq-result-head { display: flex; flex-direction: column; align-items: center; gap: 8rpx; }
+.rq-guarantee { font-size: 22rpx; color: var(--gold); }
+.rq-result-body { flex: 1; min-height: 0; margin-top: 20rpx; }
+.rq-result-foot { display: flex; gap: 16rpx; margin-top: 20rpx; }
+
+.rq-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12rpx; }
+.rq-cards--single { grid-template-columns: 1fr; max-width: 340rpx; margin: 40rpx auto 0; }
+
+.rq-card {
+  position: relative; aspect-ratio: 3 / 4;
+  background: var(--navy800);
+  border: 4rpx solid var(--rc, var(--line));
+  box-shadow: 0 6rpx 0 0 rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+/* 像素逐帧翻牌：scaleY 压扁再展开（2D 变换 + steps()，不使用 perspective/rotateY） */
+.rq-card--flipping { animation: rq-flip 300ms steps(6) 1; }
+@keyframes rq-flip {
+  0% { transform: scaleY(1); }
+  45% { transform: scaleY(0.04); }
+  55% { transform: scaleY(0.04); }
+  100% { transform: scaleY(1); }
+}
+.rq-card--up { animation: rq-pop 240ms steps(4) 1; }
+@keyframes rq-pop { 0% { transform: scale(0.85); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+.rq-card-face { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4rpx; padding: 8rpx 6rpx; }
+
+.rq-card-back { background: var(--navy700); }
+.rq-back-grid {
+  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  background:
+    repeating-linear-gradient(45deg, rgba(60,79,143,0.5) 0 6rpx, rgba(0,0,0,0) 6rpx 14rpx),
+    repeating-linear-gradient(-45deg, rgba(60,79,143,0.35) 0 6rpx, rgba(0,0,0,0) 6rpx 14rpx);
+}
+.rq-back-q { position: relative; font-size: 56rpx; color: var(--gold); text-shadow: 4rpx 4rpx 0 rgba(0,0,0,0.7); }
+.rq-back-tip { position: relative; font-size: 18rpx; color: var(--text-mute); }
+
+.rq-card-front { background: linear-gradient(180deg, rgba(27,40,84,0.9) 0%, rgba(7,12,28,0.95) 100%); justify-content: flex-start; }
+.rq-front-top { display: flex; align-items: baseline; justify-content: space-between; width: 100%; }
+.rq-ovr { font-size: 30rpx; font-weight: bold; }
+.rq-rar { font-size: 18rpx; letter-spacing: 1rpx; }
+.rq-name { font-size: 22rpx; color: var(--text); width: 100%; text-align: center; margin-top: 6rpx; }
+.rq-meta { font-size: 16rpx; color: var(--text-mute); }
+.rq-forced { margin-top: 4rpx; font-size: 16rpx; color: var(--navy900); background: var(--gold); padding: 0 8rpx; }
+
+.rq-cards--single .rq-card { aspect-ratio: 3 / 4; }
+.rq-cards--single .rq-ovr { font-size: 48rpx; }
+.rq-cards--single .rq-name { font-size: 30rpx; }
+.rq-cards--single .rq-meta { font-size: 22rpx; }

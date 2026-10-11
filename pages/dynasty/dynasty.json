@@ -1,0 +1,6 @@
+{
+  "usingComponents": {
+    "resource-bar": "/components/resource-bar/index"
+  },
+  "navigationBarTitleText": "王朝赛季"
+}

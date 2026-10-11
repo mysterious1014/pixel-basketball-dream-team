@@ -1,0 +1,134 @@
+<view class="px-screen px-screen--court {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar />
+
+  <!-- 经理信息 -->
+  <view class="px-panel px-panel--gold hm-hero px-mt16">
+    <view class="px-row--between">
+      <view class="px-col">
+        <text class="px-h2">{{managerName}}</text>
+        <text class="px-mute hm-hero-sub">{{gameName}} · Lv{{level}}</text>
+      </view>
+      <view class="hm-hero-badge">
+        <text class="hm-hero-ovr">{{avgOvr}}</text>
+        <text class="px-mute">首发均评</text>
+      </view>
+    </view>
+    <px-progress class="px-mt12" value="{{expRatio}}" max="{{100}}" variant="gold" caption="经理经验" label="{{expText}}" height="{{18}}" />
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="px-grid3 px-mt16">
+    <view wx:for="{{quickLinks}}" wx:key="key" class="hm-quick" data-key="{{item.key}}" bindtap="onQuick" hover-class="px-btn--active">
+      <text class="hm-quick-ico">{{item.icon}}</text>
+      <text class="hm-quick-label">{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 首发五虎 -->
+  <view class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">首发阵容</text>
+      <text class="px-mute" bindtap="goRoster">编辑 ›</text>
+    </view>
+    <view class="hm-line">
+      <view wx:for="{{starterTiles}}" wx:key="slot" class="hm-slot {{item.empty ? 'hm-slot--empty' : ''}} {{item.matched ? '' : 'hm-slot--off'}}">
+        <text class="hm-slot-pos">{{item.position}}</text>
+        <px-portrait wx:if="{{!item.empty}}" cardId="{{item.cardId}}" size="{{96}}" />
+        <view wx:else class="hm-slot-hole"><text class="hm-slot-q">?</text></view>
+        <text class="hm-slot-name px-ellipsis">{{item.name}}</text>
+        <text wx:if="{{!item.empty}}" class="hm-slot-ovr px-tag--{{item.rarity}}">{{item.ovr}}</text>
+      </view>
+    </view>
+    <view class="px-mt12">
+      <px-progress value="{{capRatio}}" max="{{100}}" variant="{{overCap ? 'danger' : 'orange'}}" warnOver="{{false}}"
+        caption="工资帽 {{salaryText}} / {{capText}}" label="{{starterCount}}/{{starterNeed}} 首发" height="{{22}}" />
+    </view>
+    <view wx:if="{{overCap}}" class="hm-warn px-mt8">薪资超出工资帽，无法出战，请先调整阵容</view>
+    <view wx:elif="{{!rosterReady}}" class="hm-warn px-mt8">首发还差 {{starterNeed - starterCount}} 人，去招募页抽卡吧</view>
+  </view>
+
+  <!-- 下一场 -->
+  <view class="px-panel px-panel--orange px-mt16" wx:if="{{nextStage}}">
+    <view class="px-row--between">
+      <text class="px-panel__title">下一场 · 第{{nextStage.chapter}}章 {{nextStage.index}}</text>
+      <text class="px-tag {{nextStage.boss ? 'px-tag--UR' : 'px-tag--SR'}}">{{nextStage.boss ? 'BOSS' : '常规赛'}}</text>
+    </view>
+    <view class="px-row--between hm-next">
+      <view class="px-col px-gap8">
+        <text class="px-h3">{{nextStage.name}}</text>
+        <text class="px-dim">对手 {{nextStage.opponent}} · 推荐 OVR {{nextStage.awayOvr}}</text>
+        <text class="px-mute">体力消耗 {{nextStage.staminaCost}} · 当前 {{stamina}}</text>
+      </view>
+      <view class="px-btn {{canPlayNext && rosterReady ? 'px-btn--primary' : 'px-btn--disabled'}} hm-next-btn" bindtap="playNext">出战</view>
+    </view>
+  </view>
+
+  <!-- 竞技场（第七章 7.4 模式：竞技场 / 异步 PVP，里程碑 2）：段位 / 积分 / 今日次数 / 下一位对手 -->
+  <view wx:if="{{arenaEnabled}}" class="px-panel px-panel--orange px-mt16 hm-arena" bindtap="goArena" hover-class="px-btn--active">
+    <view class="px-row--between">
+      <text class="px-panel__title">竞技场 · 异步天梯</text>
+      <text class="px-tag px-tag--SR">{{arenaDailyText}}</text>
+    </view>
+    <view class="px-row--between hm-arena-body">
+      <view class="px-col px-gap8">
+        <text class="px-h3 hm-arena-rank">{{arenaRankName}} · 积分 {{arenaRating}}</text>
+        <text class="px-dim">天梯进度 {{arenaProgressText}} · 下一位 {{arenaNextName}}</text>
+        <text class="px-mute">竞技币 {{arenaCoinText}} · 打赢强的多涨分、输给弱的多扣分</text>
+      </view>
+      <view class="px-btn px-btn--primary px-btn--sm hm-arena-btn">进入</view>
+    </view>
+  </view>
+
+  <!-- 数据面板 -->
+  <view class="px-grid2 px-mt16">
+    <view class="px-panel px-panel--flat">
+      <text class="px-panel__title">图鉴</text>
+      <view class="px-num">{{ownedCount}}<text class="hm-slash">/{{totalCount}}</text></view>
+      <px-progress class="px-mt8" value="{{collectRatio}}" max="{{100}}" variant="ur" height="{{16}}" />
+      <text class="px-mute hm-mt6" bindtap="goCollection">查看图鉴 ›</text>
+    </view>
+    <view class="px-panel px-panel--flat">
+      <text class="px-panel__title">赛季征程</text>
+      <view class="px-num">{{stars}}<text class="hm-slash">/{{starMax}} ★</text></view>
+      <px-progress class="px-mt8" value="{{stars}}" max="{{starMax}}" variant="gold" height="{{16}}" />
+      <text class="px-mute hm-mt6">已通关 {{clearedCount}}/{{stageCount}} 关</text>
+    </view>
+  </view>
+
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">执教战绩</text>
+    <view class="hm-stats">
+      <view class="hm-stat"><text class="hm-stat-v">{{battles}}</text><text class="px-mute">场次</text></view>
+      <view class="hm-stat"><text class="hm-stat-v">{{wins}}</text><text class="px-mute">胜场</text></view>
+      <view class="hm-stat"><text class="hm-stat-v">{{winRate}}%</text><text class="px-mute">胜率</text></view>
+      <view class="hm-stat"><text class="hm-stat-v">{{pulls}}</text><text class="px-mute">招募</text></view>
+    </view>
+  </view>
+
+  <!-- 上一场 -->
+  <view class="px-panel px-panel--flat px-mt16" wx:if="{{lastMatch}}">
+    <view class="px-row--between">
+      <text class="px-panel__title">上一场</text>
+      <text class="px-mute">{{lastMatch.at}}</text>
+    </view>
+    <view class="px-row--between">
+      <text class="hm-last {{lastMatch.result === 'win' ? 'hm-last--win' : ''}}">{{lastMatch.text}}</text>
+      <text class="px-tag px-tag--SSR">{{lastMatch.stars}} ★</text>
+    </view>
+  </view>
+
+  <!-- 动态 -->
+  <view class="px-panel px-panel--flat px-mt16" wx:if="{{notices.length}}">
+    <text class="px-panel__title">球队动态</text>
+    <view wx:for="{{notices}}" wx:key="index" class="hm-notice">
+      <text class="px-dot"></text>
+      <text class="px-dim px-grow px-ellipsis">{{item.text}}</text>
+      <text class="px-mute">{{item.at}}</text>
+    </view>
+  </view>
+
+  <view class="px-mt16 hm-legal">
+    <text class="px-mute">{{dataSourceLabel}} · 数据为原创演示近似，不来自任何官方或商业数据源</text>
+  </view>
+  <view class="px-safe-bottom"></view>
+</view>

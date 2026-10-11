@@ -1,0 +1,130 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar tickets="{{true}}" />
+
+  <!-- 卡池切换 -->
+  <view class="px-row--wrap px-gap12 px-mt16">
+    <view wx:for="{{poolKeys}}" wx:key="*this"
+      class="px-chip rq-pool {{poolKey === item ? 'px-chip--on' : ''}}"
+      data-key="{{item}}" bindtap="switchPool">{{item === 'normal' ? '普通招募' : '高级球探'}}</view>
+    <view class="px-chip rq-pool" bindtap="toggleRates">概率公示</view>
+  </view>
+
+  <!-- 卡池主视觉 -->
+  <view class="px-panel px-panel--orange px-mt16 rq-hero">
+    <view class="rq-hero-stripes"></view>
+    <view class="rq-hero-body">
+      <text class="px-h1">{{poolName}}</text>
+      <text class="px-dim rq-hero-desc">{{poolDesc}}</text>
+      <view class="px-row px-gap12 rq-hero-tags">
+        <text class="px-tag px-tag--N">N</text>
+        <text class="px-tag px-tag--R">R</text>
+        <text class="px-tag px-tag--SR">SR</text>
+        <text class="px-tag px-tag--SSR">SSR</text>
+        <text wx:if="{{poolKey === 'advanced'}}" class="px-tag px-tag--UR">UR</text>
+      </view>
+      <text class="px-mute rq-hero-ticket">持有{{poolTicketName}} {{tickets}} 张 · 钻石 {{diamondText}}</text>
+    </view>
+  </view>
+
+  <!-- 概率公示（合规：明示基础概率） -->
+  <view wx:if="{{rateOpen}}" class="px-panel px-panel--flat px-mt16 px-slide-up">
+    <text class="px-panel__title">基础概率公示</text>
+    <view class="rq-rate-head">
+      <text class="rq-rate-c1">稀有度</text>
+      <text class="rq-rate-c2">概率</text>
+      <text class="rq-rate-c3">说明</text>
+    </view>
+    <view wx:for="{{rates}}" wx:key="rarity" class="rq-rate-row">
+      <text class="rq-rate-c1 px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+      <text class="rq-rate-c2 {{item.zero ? 'rq-rate-zero' : ''}}">{{item.pct}}</text>
+      <text class="rq-rate-c3 px-mute">{{item.label}}</text>
+    </view>
+    <text class="px-mute rq-rate-note">十连必出 SR 及以上；高级球探 {{hardPity}} 抽必出 UR。以下为基础概率，PRD 会在此基础上平滑递增。</text>
+  </view>
+
+  <!-- 保底进度（第七章 PRD） -->
+  <view class="px-panel px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">UR 保底进度</text>
+      <text class="px-mute">高级池累计 {{advPulls}} 抽 · 已出 UR {{totalUr}} 次</text>
+    </view>
+    <px-progress value="{{pityRatio}}" max="{{100}}" variant="ur" height="{{26}}"
+      caption="距硬保底还剩 {{hardLeft}} 抽" label="{{urPity}}/{{hardPity}}" />
+    <view class="px-row--between px-mt8">
+      <text class="px-dim">下次 UR 概率 {{nextUrRate}}</text>
+      <text class="px-mute">基础 {{baseUrRate}}</text>
+    </view>
+    <text class="px-mute rq-prd">{{prdNote}}</text>
+  </view>
+
+  <!-- 抽卡按钮 -->
+  <view class="px-row px-gap16 px-mt16">
+    <view class="px-btn px-btn--gold px-grow rq-btn {{canSingle ? '' : 'px-btn--disabled'}}" data-count="1" bindtap="doPull" hover-class="px-btn--active">
+      <text>{{singleLabel}}</text>
+    </view>
+    <view class="px-btn px-btn--primary px-grow rq-btn {{canTen ? '' : 'px-btn--disabled'}}" data-count="10" bindtap="doPull" hover-class="px-btn--active">
+      <text>{{tenLabel}}</text>
+    </view>
+  </view>
+  <view class="px-btn px-btn--ghost px-btn--block px-mt12" bindtap="goRoster">抽到好卡了？去阵容页编排 ›</view>
+
+  <!-- 最近获得 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">最近获得</text>
+    <view wx:if="{{!history.length}}" class="px-empty">还没有招募记录，来一发十连试试手感</view>
+    <view wx:else class="rq-history">
+      <view wx:for="{{history}}" wx:key="uid" class="rq-hitem" data-uid="{{item.uid}}" bindtap="goDetail">
+        <view class="rq-hbar" style="background:{{item.color}};"></view>
+        <text class="rq-hname px-ellipsis">{{item.name}}</text>
+        <text class="rq-hrar" style="color:{{item.color}};">{{item.rarity}}</text>
+        <text class="px-mute">{{item.at}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="px-safe-bottom"></view>
+
+  <!-- ============ 抽卡结果：像素逐帧翻牌 ============ -->
+  <view wx:if="{{resultOpen}}" class="px-mask rq-mask"></view>
+  <view wx:if="{{resultOpen}}" class="rq-result">
+    <view class="rq-result-head">
+      <text class="px-h2">招募结果</text>
+      <text wx:if="{{guaranteeText}}" class="rq-guarantee px-blink">{{guaranteeText}}</text>
+    </view>
+
+    <scroll-view class="rq-result-body" scroll-y>
+      <view class="rq-cards {{resultCards.length === 1 ? 'rq-cards--single' : ''}}">
+        <view wx:for="{{resultCards}}" wx:key="idx"
+          class="rq-card {{item.flipped ? 'rq-card--up' : ''}} {{item.flipping ? 'rq-card--flipping' : ''}} {{item.flipped && (item.rarity === 'UR' || item.rarity === 'SSR') ? 'px-shake' : ''}}"
+          style="--rc:{{item.color}};"
+          data-idx="{{item.idx}}" bindtap="onCardTap">
+
+          <!-- 卡背（未翻开） -->
+          <view wx:if="{{!item.flipped}}" class="rq-card-face rq-card-back">
+            <view class="rq-back-grid"></view>
+            <text class="rq-back-q">?</text>
+            <text class="rq-back-tip">点击翻牌</text>
+          </view>
+
+          <!-- 卡面（已翻开） -->
+          <view wx:else class="rq-card-face rq-card-front">
+            <view class="rq-front-top">
+              <text class="rq-ovr" style="color:{{item.color}};">{{item.ovr}}</text>
+              <text class="rq-rar" style="color:{{item.color}};">{{item.rarity}}</text>
+            </view>
+            <px-portrait cardId="{{item.cardId}}" size="{{150}}" />
+            <text class="rq-name px-ellipsis">{{item.name}}</text>
+            <text class="rq-meta">{{item.position}} · {{item.version}}</text>
+            <text wx:if="{{item.forced}}" class="rq-forced">保底</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="rq-result-foot">
+      <view wx:if="{{!revealedAll}}" class="px-btn px-btn--gold px-grow" bindtap="revealAll">全部翻开</view>
+      <view wx:if="{{revealedAll}}" class="px-btn px-btn--primary px-grow" bindtap="closeResult">收下</view>
+      <view wx:else class="px-btn px-btn--ghost" bindtap="closeResult">跳过</view>
+    </view>
+  </view>
+</view>

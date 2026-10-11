@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "resource-bar": "/components/resource-bar/index",
+    "px-progress": "/components/px-progress/index"
+  },
+  "navigationBarTitleText": "我的"
+}

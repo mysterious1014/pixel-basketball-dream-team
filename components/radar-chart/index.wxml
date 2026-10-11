@@ -1,0 +1,10 @@
+<view class="rc" style="width:{{size}}rpx;height:{{size}}rpx;">
+  <canvas wx:if="{{supported}}" id="pxRadarCanvas" type="2d" class="rc__cv" style="width:{{size}}rpx;height:{{size}}rpx;"></canvas>
+  <view wx:else class="rc__fb">
+    <view wx:for="{{fbRows}}" wx:key="key" class="rc__row">
+      <text class="rc__label">{{item.label}}</text>
+      <view class="rc__track"><view class="rc__fill" style="width:{{item.pct}}%;"></view></view>
+      <text class="rc__val">{{item.value}}</text>
+    </view>
+  </view>
+</view>

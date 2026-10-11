@@ -1,0 +1,103 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar compact="{{true}}" />
+
+  <!-- 经理 -->
+  <view class="px-panel px-mt16">
+    <text class="px-panel__title">经理档案</text>
+    <view class="px-list-item" bindtap="rename">
+      <view class="px-col px-grow px-gap8">
+        <text class="px-h3 px-ellipsis">{{managerName}}</text>
+        <text class="px-mute">Lv{{level}} · 点击改名</text>
+      </view>
+      <text class="px-mute">›</text>
+    </view>
+  </view>
+
+  <!-- 演出与无障碍 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">演出与体验</text>
+    <view class="st-row">
+      <view class="px-col px-grow px-gap8">
+        <text class="px-text">减少动效</text>
+        <text class="px-mute">关闭抖动/闪烁/翻牌动画，抽卡直接出结果</text>
+      </view>
+      <switch checked="{{reduceMotion}}" color="#ff8a1f" data-key="reduceMotion" bindchange="onToggle" />
+    </view>
+    <view class="st-row">
+      <view class="px-col px-grow px-gap8">
+        <text class="px-text">音效开关</text>
+        <text class="px-mute">当前版本未接入音频输出，开关仅保存偏好（不影响游戏）</text>
+      </view>
+      <switch checked="{{sound}}" color="#ff8a1f" data-key="sound" bindchange="onToggle" />
+    </view>
+    <view class="st-row st-row--col">
+      <text class="px-text">比赛播放速度（当前 {{speedName}}）</text>
+      <view class="px-row--wrap px-gap12 px-mt8">
+        <view wx:for="{{speeds}}" wx:key="value" class="px-chip {{autoSpeed === item.value ? 'px-chip--on' : ''}}"
+          data-v="{{item.value}}" bindtap="onSpeed">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 合规 -->
+  <view class="px-panel px-panel--gold px-mt16">
+    <text class="px-panel__title">合规与素材</text>
+    <view class="st-row">
+      <view class="px-col px-grow px-gap8">
+        <text class="px-text">虚构化名模式（兜底）</text>
+        <text class="px-mute">开启后球员显示为风格化化名（如「三分雨」），城市显示为虚构城市名，彻底规避真人关联</text>
+      </view>
+      <switch checked="{{fictionalNames}}" color="#ff8a1f" data-key="fictionalNames" bindchange="onToggle" />
+    </view>
+    <view class="st-row st-row--col">
+      <text class="px-text">数据通道</text>
+      <text class="px-mute">config.compliance.useDemoData = {{useDemoData}}（MVP 固定走演示数据，不联网抓取）</text>
+      <text class="px-mute">正式数据接口 apiBase {{apiBaseEmpty ? '为空（预留）' : '已配置'}}</text>
+      <text class="px-mute">立绘：{{portraitEnabled ? '程序生成像素 PNG，缺失自动回退 CSS 占位图' : '已关闭，使用 CSS 占位图'}}</text>
+      <text class="px-mute">像素字体：{{fontPathSet ? '已配置本地字体' : '未配置（把 Zpix.ttf 放进 assets/fonts/ 并在 config.art.localFontPath 填路径即可）'}}</text>
+    </view>
+    <view class="px-divider"></view>
+    <text class="px-mute st-legal">{{dataSourceLabel}}</text>
+    <text class="px-mute st-legal">{{legalNote}}</text>
+    <text class="px-mute st-legal">{{trademarkNote}}</text>
+  </view>
+
+  <!-- 存档 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <text class="px-panel__title">存档</text>
+    <view class="st-kv"><text class="px-mute">存储键</text><text class="px-text">{{saveKey}}</text></view>
+    <view class="st-kv"><text class="px-mute">结构版本</text><text class="px-text">schema {{saveSchema}}（旧档自动迁移）</text></view>
+    <view class="st-kv"><text class="px-mute">大小</text><text class="px-text">约 {{saveSize}} 字符</text></view>
+    <view class="st-kv"><text class="px-mute">建档</text><text class="px-text">{{createdAt}}</text></view>
+    <view class="st-kv"><text class="px-mute">最后更新</text><text class="px-text">{{updatedAt}}</text></view>
+    <view class="px-row px-gap12 px-mt16">
+      <view class="px-btn px-btn--sm px-grow" bindtap="exportSave">导出存档</view>
+      <view class="px-btn px-btn--danger px-btn--sm px-grow" bindtap="resetSave">重置存档</view>
+    </view>
+    <text class="px-mute st-legal">存档只写在本机 wx.setStorage，MVP 不做云同步、不上传任何数据。</text>
+  </view>
+
+  <!-- 关于 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between" bindtap="toggleAbout">
+      <text class="px-panel__title">关于</text>
+      <text class="px-mute">{{aboutOpen ? '收起' : '展开'}} ›</text>
+    </view>
+    <view class="st-kv"><text class="px-mute">名称</text><text class="px-text">{{gameName}}</text></view>
+    <view class="st-kv"><text class="px-mute">版本</text><text class="px-text">v{{version}} · {{milestone}}</text></view>
+    <view wx:if="{{aboutOpen}}" class="st-about">
+      <view class="st-kv"><text class="px-mute">卡牌</text><text class="px-text">{{cardCount}} 张（手工 {{handCount}} + 青训原创 {{academyCount}}）· 已收集 {{ownedCount}}</text></view>
+      <view class="st-kv"><text class="px-mute">关卡</text><text class="px-text">{{chapterCount}} 章 / {{stageCount}} 关</text></view>
+      <view class="st-kv"><text class="px-mute">解说模板</text><text class="px-text">{{commentaryCount}} 条</text></view>
+      <view class="st-kv"><text class="px-mute">道具装备</text><text class="px-text">{{itemCount}} 种</text></view>
+      <view class="st-kv"><text class="px-mute">工资帽</text><text class="px-text">{{salaryCap}}</text></view>
+      <view class="st-kv"><text class="px-mute">体力</text><text class="px-text">上限 {{staminaMax}} · {{staminaSeconds}} 秒/点</text></view>
+      <view class="st-kv"><text class="px-mute">招募保底</text><text class="px-text">高级池 {{hardPity}} 抽必出 UR · PRD 每抽 +{{prdInc}}</text></view>
+      <view class="st-kv"><text class="px-mute">比赛</text><text class="px-text">每队每节 {{roundsPerQuarter}} 回合 · 四节 · 平分进加时</text></view>
+      <view class="st-kv"><text class="px-mute">字体栈</text><text class="px-text st-mono">{{fontStack}}</text></view>
+      <view class="st-kv"><text class="px-mute">依赖</text><text class="px-text">零第三方运行时依赖，无任何外部网络请求</text></view>
+    </view>
+  </view>
+
+  <view class="px-safe-bottom"></view>
+</view>

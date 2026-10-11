@@ -1,0 +1,83 @@
+/* pages/detail/detail.wxss —— 详情页：卡面 + 雷达 + 属性条 + 养成 + 装备 + 版本 */
+.dt-hero { border-color: var(--rc, var(--line)); }
+.dt-hero-top { display: flex; gap: 14rpx; align-items: flex-start; }
+.dt-ovr { width: 96rpx; flex: none; display: flex; flex-direction: column; align-items: center; padding: 8rpx 0; background: var(--navy900); border: 3rpx solid var(--line-soft); }
+.dt-ovr-num { font-size: 40rpx; font-weight: bold; line-height: 1.1; }
+.dt-ovr-rar { font-size: 18rpx; letter-spacing: 1rpx; }
+
+.dt-hero-meta { display: flex; gap: 8rpx; }
+.dt-meta { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2rpx; padding: 8rpx 0; background: var(--navy900); border: 3rpx solid var(--line-soft); }
+.dt-meta-v { font-size: 22rpx; color: var(--text); }
+.dt-star { color: var(--gold); }
+
+.dt-sign { display: flex; align-items: center; gap: 10rpx; }
+.dt-tag { height: 36rpx; font-size: 18rpx; }
+
+.dt-radar-rows { display: flex; flex-direction: column; gap: 8rpx; }
+.dt-radar-row { display: flex; align-items: center; gap: 10rpx; }
+.dt-radar-label { width: 76rpx; flex: none; font-size: 22rpx; color: var(--text-dim); }
+.dt-radar-track { flex: 1; height: 16rpx; background: var(--navy900); border: 2rpx solid var(--line-soft); overflow: hidden; }
+.dt-radar-fill { height: 100%; }
+.dt-radar-val { width: 52rpx; flex: none; text-align: right; font-size: 22rpx; color: var(--gold); }
+
+.dt-group { margin-top: 14rpx; }
+.dt-group-name { display: block; font-size: 20rpx; color: var(--orange); letter-spacing: 2rpx; margin-bottom: 6rpx; }
+.dt-attr { display: flex; align-items: center; gap: 10rpx; padding: 5rpx 0; }
+.dt-attr-label { width: 110rpx; flex: none; font-size: 20rpx; color: var(--text-dim); }
+.dt-attr-track { flex: 1; height: 14rpx; background: var(--navy900); border: 2rpx solid var(--line-soft); overflow: hidden; }
+.dt-attr-fill { height: 100%; }
+.dt-attr-val { width: 48rpx; flex: none; text-align: right; font-size: 22rpx; color: var(--text); }
+.dt-attr-delta { width: 48rpx; flex: none; text-align: right; font-size: 18rpx; color: var(--hp); }
+
+/* 时刻卡弹层里的「当前佩戴」块（里程碑 2）：与候选列表区分开，避免玩家误点成换卡 */
+.dt-moment-cur {
+  display: flex; flex-direction: column; gap: 6rpx;
+  padding: 14rpx; margin-bottom: 12rpx;
+  border: 2rpx solid var(--line); background: var(--navy800);
+}
+.dt-moment-line { font-size: 22rpx; }
+.dt-note { display: block; margin-top: 12rpx; line-height: 1.7; }
+
+.dt-grow { display: flex; align-items: center; gap: 14rpx; padding: 16rpx 0; }
+.dt-grow + .dt-grow { border-top: 3rpx solid var(--line-soft); }
+
+.dt-eq { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 0; }
+.dt-eq + .dt-eq { border-top: 2rpx solid var(--line-soft); }
+.dt-eq-slot { width: 76rpx; flex: none; font-size: 22rpx; color: var(--orange); }
+
+.dt-vers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; }
+.dt-ver { display: flex; flex-direction: column; align-items: center; gap: 6rpx; }
+.dt-ver--self { outline: 3rpx solid var(--orange); outline-offset: 4rpx; }
+.dt-ver-v { font-size: 18rpx; color: var(--text-mute); text-align: center; }
+
+.dt-foot { display: flex; gap: 12rpx; }
+
+.dt-slot-label { width: 130rpx; flex: none; font-size: 22rpx; color: var(--orange); }
+.dt-slot--off { opacity: 0.75; }
+.dt-sheet-foot { display: flex; gap: 12rpx; padding: 16rpx 20rpx; border-top: 4rpx solid var(--line-soft); }
+/* ---------- 时空进化（第八章「创新玩法」，里程碑 3）---------- */
+.dt-evo {
+  display: flex; flex-direction: column; gap: 8rpx;
+  margin-top: 16rpx; padding-top: 16rpx;
+  border-top: 3rpx solid var(--line-soft);
+}
+.dt-evo-acts { display: flex; gap: 12rpx; }
+.dt-evo-btn { flex: 1; min-height: 64rpx; padding: 0 8rpx; font-size: 22rpx; letter-spacing: 0; }
+.dt-evo-line { display: block; font-size: 22rpx; color: var(--gold); line-height: 1.6; }
+.dt-evo-row--off { opacity: 0.55; }
+.dt-evo-last { flex: none; font-size: 18rpx; color: var(--danger); }
+.dt-ver-value { color: var(--gold); }
+
+/* ---------- 羁绊连线（第七章 7.3，里程碑 2）---------- */
+.dt-bond { display: flex; gap: 12rpx; align-items: flex-start; padding: 12rpx 0; border-bottom: 2rpx solid var(--line-soft); }
+.dt-bond:last-of-type { border-bottom: 0; }
+.dt-bond-tag {
+  flex: none; margin-top: 2rpx; padding: 4rpx 8rpx; font-size: 18rpx; letter-spacing: 1rpx;
+  color: var(--navy900); background: var(--text-mute); border: 2rpx solid var(--navy900);
+}
+.dt-bond-tag--rival { background: var(--danger); }
+.dt-bond-tag--combo { background: var(--gold); }
+.dt-bond-bonus { font-size: 22rpx; color: var(--hp); }
+.dt-bond-status { flex: none; font-size: 18rpx; color: var(--text-mute); }
+.dt-bond-status--on { color: var(--gold); }
+.dt-bond-status--owned { color: var(--hp); }

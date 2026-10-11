@@ -1,0 +1,8 @@
+<view class="pxp {{dim ? 'pxp--dim' : ''}}" style="width:{{size}}rpx;height:{{size}}rpx;">
+  <image wx:if="{{src && !failed}}" class="pxp__img" src="{{src}}" mode="aspectFill" binderror="onError" />
+  <view wx:else class="pxp__fb" style="background:{{primary}};">
+    <view class="pxp__fb-trim" style="background:{{secondary}};"></view>
+    <view class="pxp__fb-head" style="border-color:{{secondary}};"></view>
+    <text class="pxp__fb-num">{{number}}</text>
+  </view>
+</view>

@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "resource-bar": "/components/resource-bar/index",
+    "px-portrait": "/components/px-portrait/index",
+    "px-progress": "/components/px-progress/index"
+  },
+  "navigationBarTitleText": "图鉴"
+}

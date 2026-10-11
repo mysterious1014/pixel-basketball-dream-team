@@ -1,0 +1,314 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+
+  <view wx:if="{{missing}}" class="px-panel px-mt16">
+    <view class="px-empty">这张卡不存在或已被消耗（可能已用于升星或时空进化分解）。</view>
+    <view class="px-btn px-btn--ghost px-btn--block px-mt16" bindtap="goRecruit">去招募页</view>
+  </view>
+
+  <block wx:else>
+    <!-- 卡面 -->
+    <view class="px-panel dt-hero" style="--rc:{{color}};">
+      <view class="dt-hero-top">
+        <view class="dt-ovr" style="color:{{color}};">
+          <text class="dt-ovr-num">{{ovr}}</text>
+          <text class="dt-ovr-rar">{{rarity}}</text>
+        </view>
+        <view class="px-col px-grow px-gap8">
+          <text class="px-h1 px-ellipsis">{{name}}</text>
+          <view class="px-row--wrap px-gap8">
+            <text class="px-tag px-tag--{{rarity}}">{{position}}</text>
+            <text class="px-tag px-tag--N">{{version}}</text>
+            <text wx:if="{{academy}}" class="px-tag px-tag--R">青训原创</text>
+          </view>
+          <text class="px-mute">{{city}} · #{{number}} · {{era}}{{draft ? ' · ' + draft + ' 届' : ''}}</text>
+        </view>
+        <px-portrait cardId="{{cardId}}" size="{{180}}" />
+      </view>
+
+      <view class="dt-hero-meta px-mt12">
+        <view class="dt-meta"><text class="px-mute">薪资</text><text class="dt-meta-v">{{salaryText}}</text></view>
+        <view class="dt-meta"><text class="px-mute">等级</text><text class="dt-meta-v">Lv{{level}}/{{levelMax}}</text></view>
+        <view class="dt-meta"><text class="px-mute">星级</text><text class="dt-meta-v dt-star">{{starText}}</text></view>
+        <view class="dt-meta"><text class="px-mute">突破</text><text class="dt-meta-v">+{{breakthrough}}</text></view>
+      </view>
+
+      <view wx:if="{{signature}}" class="dt-sign px-mt12">
+        <text class="px-mute">招牌</text><text class="px-text">{{signature}}</text>
+      </view>
+      <view wx:if="{{tags.length}}" class="px-row--wrap px-gap8 px-mt8">
+        <text wx:for="{{tags}}" wx:key="*this" class="px-chip dt-tag">{{item}}</text>
+      </view>
+      <view class="px-row--between px-mt12">
+        <text class="px-mute">出厂 OVR {{baseOvr}}（{{baseRarity}}）· 养成 +{{bonus}} 属性 · 薪资 {{baseSalaryText}} → {{salaryText}}</text>
+      </view>
+      <view class="px-row--between px-mt8">
+        <text class="px-mute">同名卡 {{dups}} 张（升星材料）· 当前{{rosterLabel}}</text>
+        <text class="px-mute" wx:if="{{inRoster && !positionMatched}}">位置不符，发挥打折</text>
+      </view>
+    </view>
+
+    <!-- 六维雷达 -->
+    <view class="px-panel px-panel--flat px-mt16">
+      <text class="px-panel__title">六维能力（19 项归并）</text>
+      <radar-chart values="{{radarValues}}" size="{{440}}" color="{{color}}" />
+      <view class="dt-radar-rows px-mt12">
+        <view wx:for="{{radarRows}}" wx:key="key" class="dt-radar-row">
+          <text class="dt-radar-label">{{item.label}}</text>
+          <view class="dt-radar-track"><view class="dt-radar-fill" style="width:{{item.value}}%;background:{{color}};"></view></view>
+          <text class="dt-radar-val">{{item.value}}</text>
+        </view>
+      </view>
+      <text class="px-mute dt-note">归并口径：得分=突破/中投/三分/扣篮/罚球，组织=传球/控球/进攻意识，篮板=前场/后场，防守=抢断/盖帽/防守意识，运动=速度/加速/弹跳/力量，续航=体力/潜力。</text>
+    </view>
+
+    <!-- 19 项属性 -->
+    <view class="px-panel px-panel--flat px-mt16">
+      <text class="px-panel__title">球探报告 · 19 项属性</text>
+      <view wx:for="{{groups}}" wx:for-item="g" wx:key="name" class="dt-group">
+        <text class="dt-group-name">{{g.name}}</text>
+        <view wx:for="{{g.rows}}" wx:for-item="r" wx:key="key" class="dt-attr">
+          <text class="dt-attr-label">{{r.label}}</text>
+          <view class="dt-attr-track"><view class="dt-attr-fill" style="width:{{r.pct}}%;background:{{color}};"></view></view>
+          <text class="dt-attr-val">{{r.value}}</text>
+          <text class="dt-attr-delta">{{r.deltaText}}</text>
+        </view>
+      </view>
+      <text class="px-mute dt-note">{{dataSourceLabel}} · 数值为原创演示近似，不来自任何官方或商业数据源。</text>
+    </view>
+
+    <!-- 养成 -->
+    <view class="px-panel px-mt16">
+      <view class="px-row--between">
+        <text class="px-panel__title">养成</text>
+        <text class="px-mute">金币 {{goldText}} · 碎片 {{shard}}</text>
+      </view>
+
+      <view class="dt-grow">
+        <view class="px-col px-grow px-gap8">
+          <text class="px-h3">等级 Lv{{level}}/{{levelMax}}</text>
+          <text class="px-mute">每级全属性 +0.6 · 消耗 {{lvCostText}} 金币</text>
+        </view>
+        <view class="px-btn px-btn--sm {{canLevel ? 'px-btn--primary' : 'px-btn--disabled'}}" bindtap="onLevelUp">{{lvMaxed ? '已满级' : '升级'}}</view>
+      </view>
+
+      <view class="dt-grow">
+        <view class="px-col px-grow px-gap8">
+          <text class="px-h3">星级 <text class="dt-star">{{starText}}</text> {{stars}}/{{starMax}}</text>
+          <text class="px-mute">{{starMaxed ? '已满星' : ('每星全属性 +2 · 需 ' + starNeed + ' 张同名卡（有 ' + dups + ' 张）')}}</text>
+        </view>
+        <view class="px-btn px-btn--sm {{canStar ? 'px-btn--gold' : 'px-btn--disabled'}}" bindtap="onStarUp">{{starMaxed ? '已满星' : '升星'}}</view>
+      </view>
+
+      <view class="dt-grow">
+        <view class="px-col px-grow px-gap8">
+          <text class="px-h3">突破 +{{breakthrough}}/{{breakMax}}</text>
+          <text class="px-mute">每次全属性 +3 · {{brCostText}}</text>
+        </view>
+        <view class="px-btn px-btn--sm {{canBreak ? 'px-btn--gold' : 'px-btn--disabled'}}" bindtap="onBreak">{{brMaxed ? '已满' : '突破'}}</view>
+      </view>
+    </view>
+
+    <!-- 装备 -->
+    <view class="px-panel px-panel--flat px-mt16">
+      <text class="px-panel__title">装备（球鞋 / 护腕 / 头带）</text>
+      <view wx:for="{{slots}}" wx:key="slot" class="dt-eq" data-slot="{{item.slot}}" bindtap="openEquip">
+        <text class="dt-eq-slot">{{item.slotName}}</text>
+        <view class="px-col px-grow px-gap8">
+          <text class="px-text">{{item.itemName}}</text>
+          <text class="px-mute">{{item.bonusText}}</text>
+        </view>
+        <text wx:if="{{!item.empty}}" class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+        <text class="px-mute">更换 ›</text>
+      </view>
+      <text class="px-mute dt-note">装备从比赛奖励与背包获得，点击槽位可更换或取下。</text>
+    </view>
+
+    <!-- 名场面时刻卡（第八章，里程碑 2）：随身技能卡，只在比赛内触发 -->
+    <view class="px-panel px-panel--flat px-mt16">
+      <text class="px-panel__title">{{momentSlotName}}</text>
+      <view class="dt-eq" bindtap="openMoment">
+        <text class="dt-eq-slot">时刻卡</text>
+        <view class="px-col px-grow px-gap8">
+          <text class="px-text">{{momentName}}</text>
+          <text class="px-mute">{{momentEffectText}}</text>
+        </view>
+        <text wx:if="{{momentHas}}" class="px-tag px-tag--{{momentRarity}}">{{momentRarity}}</text>
+        <text class="px-mute">更换 ›</text>
+      </view>
+      <text class="px-mute dt-note">{{momentHint}}</text>
+    </view>
+
+    <!-- 羁绊（第七章 7.3，里程碑 2） -->
+    <view wx:if="{{bondLinks.length}}" class="px-panel px-panel--flat px-mt16">
+      <text class="px-panel__title">羁绊连线</text>
+      <view wx:for="{{bondLinks}}" wx:key="id" class="dt-bond">
+        <text class="dt-bond-tag dt-bond-tag--{{item.type}}">{{item.typeLabel}}</text>
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-text">{{item.name}}</text>
+            <text class="dt-bond-status dt-bond-status--{{item.status}}">{{item.statusText}}</text>
+          </view>
+          <text class="dt-bond-bonus">{{item.bonusText}}</text>
+          <text class="px-mute">搭档：{{item.partnerText}}</text>
+        </view>
+      </view>
+      <text class="px-mute dt-note">两名成员同时进入首发 5 人即激活；羁绊只提升比赛属性，不改 OVR 与薪资。</text>
+    </view>
+
+    <!-- 版本 + 时空进化（第八章「创新玩法」，里程碑 3） -->
+    <view class="px-panel px-panel--flat px-mt16">
+      <text class="px-panel__title">同一球员的全部版本</text>
+      <view class="dt-vers">
+        <view wx:for="{{versions}}" wx:key="cardId"
+          class="dt-ver {{item.self ? 'dt-ver--self' : ''}}"
+          style="--rc:{{item.color}};" data-uid="{{item.uid}}" bindtap="goVersion">
+          <player-card card="{{item.card}}" locked="{{!item.owned}}" selected="{{item.self}}" width="{{200}}" />
+          <text class="dt-ver-v">{{item.version}}{{item.count > 1 ? ' ×' + item.count : ''}}</text>
+          <text wx:if="{{item.owned && item.valueText}}" class="dt-ver-v dt-ver-value">{{item.valueText}}</text>
+        </view>
+      </view>
+
+      <!-- 时空进化面板：只在拥有巅峰传奇版的球员上出现 -->
+      <view wx:if="{{evoEvolvable}}" class="dt-evo">
+        <view class="px-row--between">
+          <text class="px-h3">时空进化</text>
+          <text class="px-tag px-tag--{{evoPeakRarity}}">{{evoPeakRarity}} 巅峰</text>
+        </view>
+        <view class="px-row--between px-mt8">
+          <text class="px-mute">目标：{{evoPeakName}} · 巅峰传奇版</text>
+          <text class="px-mute">{{evoOwnedText}}</text>
+        </view>
+        <px-progress value="{{evoShards}}" max="{{evoCost}}" variant="gold" caption="巅峰碎片" label="{{evoProgressText}}" height="{{22}}" />
+        <view class="dt-evo-acts px-mt12">
+          <view class="{{evoPairOk ? 'px-btn px-btn--primary' : 'px-btn px-btn--disabled'}} dt-evo-btn" bindtap="onEvolvePair">时空进化</view>
+          <view class="{{evoSalvageOk ? 'px-btn px-btn--ghost' : 'px-btn px-btn--disabled'}} dt-evo-btn" bindtap="openEvoSheet">{{evoSalvageText}}</view>
+          <view class="{{evoSynthOk ? 'px-btn px-btn--gold' : 'px-btn px-btn--disabled'}} dt-evo-btn" bindtap="onSynthPeak">{{evoSynthBtnText}}</view>
+        </view>
+        <text wx:if="{{evoPairOk}}" class="dt-evo-line">{{evoPairText}}</text>
+        <text wx:if="{{!evoPairOk && evoPairReason}}" class="dt-evo-line px-mute">{{evoPairReason}}</text>
+        <text wx:if="{{!evoSynthOk && evoSynthReason}}" class="dt-evo-line px-mute">{{evoSynthReason}}</text>
+        <text wx:if="{{evoMissingText && !evoOwned}}" class="dt-evo-line px-mute">距离合成：{{evoMissingText}}</text>
+      </view>
+
+      <text class="px-mute dt-note">{{evoNote}}</text>
+    </view>
+
+    <!-- 底部操作 -->
+    <view class="dt-foot px-mt16">
+      <view class="px-btn px-btn--primary px-grow" bindtap="openRoster">{{inRoster ? '调整位置' : '编入阵容'}}</view>
+      <view wx:if="{{inRoster}}" class="px-btn px-btn--danger" bindtap="onRemove">移出</view>
+      <view class="px-btn px-btn--ghost" bindtap="goRoster">阵容页</view>
+    </view>
+  </block>
+
+  <view class="px-safe-bottom"></view>
+
+  <!-- 装备弹层 -->
+  <view wx:if="{{equipOpen}}" class="px-mask" bindtap="closeSheet"></view>
+  <view wx:if="{{equipOpen}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">选择{{equipSlotName}}</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeSheet">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <view wx:if="{{!equipOptions.length}}" class="px-empty">背包里没有这个槽位的装备，打赢比赛可获得。</view>
+      <view wx:for="{{equipOptions}}" wx:key="id" class="px-list-item" data-id="{{item.id}}" bindtap="onEquip">
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3">{{item.name}}</text>
+            <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}} ×{{item.count}}</text>
+          </view>
+          <text class="px-dim">{{item.bonusText}}</text>
+          <text class="px-mute">{{item.desc}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="dt-sheet-foot">
+      <view wx:if="{{equipItemId}}" class="px-btn px-btn--danger px-btn--sm px-grow" data-slot="{{equipSlot}}" bindtap="onUnequip">取下当前装备</view>
+      <view class="px-btn px-btn--ghost px-btn--sm px-grow" bindtap="goBag">去背包</view>
+    </view>
+  </view>
+
+  <!-- 时刻卡弹层（里程碑 2）-->
+  <view wx:if="{{momentOpen}}" class="px-mask" bindtap="closeSheet"></view>
+  <view wx:if="{{momentOpen}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">选择名场面时刻卡</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeSheet">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <view wx:if="{{momentHas}}" class="dt-moment-cur">
+        <view class="px-row--between">
+          <text class="px-h3">{{momentName}}</text>
+          <text class="px-tag px-tag--{{momentRarity}}">{{momentRarity}}</text>
+        </view>
+        <view wx:for="{{momentEffectLines}}" wx:key="*this" class="px-dim dt-moment-line">{{item}}</view>
+        <text class="px-mute">{{momentDesc}}</text>
+      </view>
+      <view wx:if="{{!momentOptionCount}}" class="px-empty">{{momentEmptyText}}</view>
+      <view wx:for="{{momentOptions}}" wx:key="id" class="px-list-item" data-id="{{item.id}}" bindtap="onMomentEquip">
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3">{{item.name}}</text>
+            <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}} ×{{item.count}}</text>
+          </view>
+          <text class="px-dim">{{item.effectText}}</text>
+          <text class="px-mute">{{item.desc}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="dt-sheet-foot">
+      <view wx:if="{{momentHas}}" class="px-btn px-btn--danger px-btn--sm px-grow" bindtap="onMomentUnequip">取下当前时刻卡</view>
+      <view class="px-btn px-btn--ghost px-btn--sm px-grow" bindtap="goShop">去竞技商城兑换</view>
+    </view>
+  </view>
+
+  <!-- 时空进化 · 分解弹层（里程碑 3） -->
+  <view wx:if="{{evoSheetOpen}}" class="px-mask" bindtap="closeSheet"></view>
+  <view wx:if="{{evoSheetOpen}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">分解版本卡</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeSheet">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <view wx:if="{{!evoRowCount}}" class="px-empty">没有可分解的版本卡（巅峰传奇版不能分解）。</view>
+      <view wx:for="{{evoRows}}" wx:key="uid"
+        class="px-list-item {{item.disabled ? 'dt-evo-row--off' : ''}}"
+        data-uid="{{item.uid}}" data-reason="{{item.disabledText}}" data-version="{{item.version}}"
+        data-value="{{item.value}}" data-growth="{{item.growthText}}" data-last="{{item.isLast}}"
+        bindtap="onSalvage">
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3">{{item.version}}</text>
+            <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+          </view>
+          <text class="px-dim">{{item.growthText}} · 分解 {{item.valueText}}</text>
+          <text wx:if="{{item.disabledText}}" class="px-mute">{{item.disabledText}}</text>
+        </view>
+        <text wx:if="{{item.isLast}}" class="dt-evo-last">最后一张</text>
+      </view>
+      <text class="px-mute dt-note">{{evoNote}}</text>
+    </scroll-view>
+  </view>
+
+  <!-- 编入阵容弹层 -->
+  <view wx:if="{{sheet === 'roster'}}" class="px-mask" bindtap="closeSheet"></view>
+  <view wx:if="{{sheet === 'roster'}}" class="px-sheet">
+    <view class="px-sheet__head">
+      <text class="px-h3">放到哪个位置？</text>
+      <text class="px-btn px-btn--ghost px-btn--sm" bindtap="closeSheet">关闭</text>
+    </view>
+    <scroll-view class="px-sheet__body" scroll-y>
+      <view wx:for="{{rosterSlots}}" wx:key="label"
+        class="px-list-item {{item.current ? 'px-list-item--on' : ''}} {{item.matched ? '' : 'dt-slot--off'}}"
+        data-slot="{{item.slot}}" data-index="{{item.index}}" bindtap="onAssign">
+        <text class="dt-slot-label">{{item.label}}</text>
+        <view class="px-col px-grow px-gap8">
+          <text class="px-text px-ellipsis">{{item.name}}</text>
+          <text class="px-mute">{{item.uid ? ('OVR ' + item.ovr) : '空位'}}{{item.matched ? '' : ' · 位置不符'}}</text>
+        </view>
+        <text wx:if="{{item.current}}" class="px-tag px-tag--SSR">当前</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>

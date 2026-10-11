@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "resource-bar": "/components/resource-bar/index",
+    "px-progress": "/components/px-progress/index",
+    "px-portrait": "/components/px-portrait/index"
+  },
+  "navigationBarTitleText": "竞技场 · 异步天梯"
+}

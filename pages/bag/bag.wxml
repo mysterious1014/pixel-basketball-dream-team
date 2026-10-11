@@ -1,0 +1,202 @@
+<view class="px-screen {{reduceMotion ? 'px-calm' : ''}}">
+  <resource-bar tickets="{{true}}" />
+
+  <view class="px-row--wrap px-gap12 px-mt16">
+    <view wx:for="{{tabs}}" wx:key="key" class="px-chip bg-tab {{tab === item.key ? 'px-chip--on' : ''}}"
+      data-key="{{item.key}}" bindtap="switchTab">{{item.name}}</view>
+  </view>
+
+  <!-- 概览 -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="bg-sum">
+      <view class="bg-sum-item"><text class="bg-sum-v">{{shard}}</text><text class="px-mute">突破碎片</text></view>
+      <view class="bg-sum-item"><text class="bg-sum-v">{{equipKinds}}</text><text class="px-mute">装备种类</text></view>
+      <view class="bg-sum-item"><text class="bg-sum-v">{{equippedCount}}</text><text class="px-mute">已穿戴球员</text></view>
+      <view class="bg-sum-item"><text class="bg-sum-v">{{cardCount}}</text><text class="px-mute">卡牌实例</text></view>
+      <view class="bg-sum-item"><text class="bg-sum-v">{{momentGot}}</text><text class="px-mute">时刻卡</text></view>
+      <view class="bg-sum-item"><text class="bg-sum-v">{{arenaCoin}}</text><text class="px-mute">竞技币</text></view>
+    </view>
+  </view>
+
+  <!-- 材料 -->
+  <block wx:if="{{tab === 'material'}}">
+    <view class="px-panel px-mt16">
+      <text class="px-panel__title">消耗品与材料</text>
+      <view wx:for="{{materials}}" wx:key="id" class="bg-item">
+        <view class="bg-bar" style="background:{{item.color}};"></view>
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3 px-ellipsis">{{item.name}}</text>
+            <text class="bg-count">×{{item.count}}</text>
+          </view>
+          <text class="px-mute">{{item.desc}}</text>
+          <text class="px-mute">{{item.typeText}}</text>
+        </view>
+        <view class="px-btn px-btn--sm {{item.usable ? 'px-btn--primary' : 'px-btn--disabled'}} bg-use" data-id="{{item.id}}" bindtap="onUse">使用</view>
+      </view>
+      <text class="px-mute bg-note">体力药水 / 金币袋 / 招募券可直接使用；突破碎片在球员详情页突破时消耗。</text>
+    </view>
+  </block>
+
+  <!-- 装备 -->
+  <block wx:if="{{tab === 'equip'}}">
+    <view class="px-panel px-mt16">
+      <view class="px-row--between">
+        <text class="px-panel__title">装备库</text>
+        <text class="px-mute" bindtap="onEquipHint">怎么穿？</text>
+      </view>
+      <view wx:for="{{equipment}}" wx:key="id" class="bg-item {{item.owned ? '' : 'bg-item--off'}}">
+        <view class="bg-bar" style="background:{{item.color}};"></view>
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3 px-ellipsis">{{item.name}}</text>
+            <text class="px-tag px-tag--{{item.rarity}}">{{item.slotName}}</text>
+          </view>
+          <text class="px-dim">{{item.bonusText}}</text>
+          <text class="px-mute">{{item.desc}}</text>
+        </view>
+        <view class="bg-eq-count">
+          <text class="bg-count">×{{item.count}}</text>
+          <text class="px-mute">{{item.owned ? '可穿戴' : '未获得'}}</text>
+        </view>
+      </view>
+      <view class="px-btn px-btn--ghost px-btn--block px-mt16" bindtap="goCollection">去图鉴选球员穿戴 ›</view>
+    </view>
+  </block>
+
+  <!-- 名场面时刻卡（第八章，里程碑 2）：图鉴口径 —— 全部卡 + 持有/佩戴状态 -->
+  <block wx:if="{{tab === 'moment'}}">
+    <view class="px-panel px-mt16">
+      <view class="px-row--between">
+        <text class="px-panel__title">时刻卡图鉴</text>
+        <text class="px-mute" bindtap="onMomentHint">怎么戴？</text>
+      </view>
+      <view class="px-row--between">
+        <text class="px-mute">{{momentProgressText}}</text>
+        <text class="px-mute">背包 {{momentInBag}} 张 · 已戴 {{momentWorn}} 张</text>
+      </view>
+      <px-progress value="{{momentGot}}" max="{{momentTotal}}" variant="gold" height="{{20}}" />
+      <view wx:for="{{moments}}" wx:key="id" class="bg-item {{item.owned ? '' : 'bg-item--off'}}">
+        <view class="bg-bar" style="background:{{item.color}};"></view>
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row--between">
+            <text class="px-h3 px-ellipsis">{{item.name}}</text>
+            <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+          </view>
+          <text class="px-dim">{{item.effectText}}</text>
+          <text class="px-mute">{{item.desc}}</text>
+        </view>
+        <view class="bg-eq-count">
+          <text class="bg-count" wx:if="{{item.inBag}}">×{{item.inBag}}</text>
+          <text class="px-mute">{{item.statusText}}</text>
+        </view>
+      </view>
+      <text class="px-mute bg-note">时刻卡只在比赛内触发，不改属性面板、OVR 与薪资，也不占工资帽。{{momentEnabled ? '' : '（当前时刻卡开关关闭，佩戴后不产生任何效果）'}}</text>
+      <view class="px-btn px-btn--ghost px-btn--block px-mt16" bindtap="goCollection">去图鉴选球员佩戴 ›</view>
+    </view>
+  </block>
+
+  <!-- 竞技商城（里程碑 2：竞技币消费出口）。canBuy / buyText / limitText 全部来自 selectors.shopView -->
+  <block wx:if="{{tab === 'shop'}}">
+    <view class="px-panel px-mt16">
+      <view class="px-row--between">
+        <text class="px-panel__title">竞技商城</text>
+        <text class="bg-count">{{arenaCoinText}}</text>
+      </view>
+      <text class="px-mute bg-note">{{arenaShop.incomeText}}</text>
+      <text class="px-mute bg-note">{{arenaShop.note}}</text>
+
+      <block wx:for="{{arenaShop.groups}}" wx:key="key" wx:for-item="grp">
+        <view class="bg-shop-head">
+          <text class="px-h3">{{grp.name}}</text>
+          <text class="px-mute">{{grp.desc}}</text>
+        </view>
+        <view wx:for="{{grp.rows}}" wx:key="id" class="bg-item {{item.canBuy ? '' : 'bg-item--off'}}">
+          <view class="bg-bar" style="background:{{item.color}};"></view>
+          <view class="px-col px-grow px-gap8">
+            <view class="px-row--between">
+              <text class="px-h3 px-ellipsis">{{item.name}}{{item.qtyText}}</text>
+              <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+            </view>
+            <text class="px-dim" wx:if="{{item.effectText}}">{{item.effectText}}</text>
+            <text class="px-mute">{{item.desc}}</text>
+            <text class="px-mute">{{item.limitText}}</text>
+          </view>
+          <view class="bg-buy">
+            <view class="px-btn px-btn--sm {{item.canBuy ? 'px-btn--primary' : 'px-btn--disabled'}} bg-use"
+              data-id="{{item.id}}" data-name="{{item.name}}" data-price="{{item.price}}"
+              data-can="{{item.canBuy}}" data-why="{{item.buyText}}" bindtap="onBuy">{{item.buyText}}</view>
+            <text class="bg-count">{{item.priceText}}</text>
+          </view>
+        </view>
+      </block>
+
+      <view class="px-btn px-btn--ghost px-btn--block px-mt16" bindtap="goArena">去竞技场赚竞技币 ›</view>
+    </view>
+
+    <!-- 钻石商店（里程碑 4）：补给直购（体力药水 / 金币袋 / 招募券），不卖直接战力 -->
+    <view class="px-panel px-mt16">
+      <view class="px-row--between">
+        <text class="px-panel__title">钻石商店</text>
+        <text class="px-mute">持有 {{diamondShop.diamond}} 钻</text>
+      </view>
+      <text class="px-mute bg-note">{{diamondShop.note}}</text>
+      <view wx:for="{{diamondShop.items}}" wx:key="id" class="bg-item">
+        <view class="px-col px-grow px-gap8">
+          <view class="px-row px-gap8">
+            <text class="px-h3 px-ellipsis">{{item.name}}</text>
+            <text class="px-tag px-tag--{{item.rarity}}">{{item.rarity}}</text>
+          </view>
+          <text class="px-mute">{{item.desc}}</text>
+        </view>
+        <view class="bg-buy">
+          <view class="px-btn px-btn--sm {{item.canBuy ? 'px-btn--primary' : 'px-btn--disabled'}} bg-use"
+            data-id="{{item.id}}" data-name="{{item.name}}" data-price="{{item.priceText}}"
+            data-can="{{item.canBuy}}" data-why="{{item.buyText}}" bindtap="onBuyConsumable">{{item.buyText}}</view>
+          <text class="bg-count">{{item.priceText}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 目标 -->
+  <!-- 任务（里程碑 4）：每日任务（每天刷新、达成自动发奖）+ 经理目标（一次性） -->
+  <block wx:if="{{tab === 'goal'}}">
+    <view class="px-panel px-mt16">
+      <view class="px-row--between">
+        <text class="px-panel__title">每日任务</text>
+        <text class="px-mute">{{daily.doneText}}</text>
+      </view>
+      <px-progress value="{{daily.doneCount}}" max="{{daily.count}}" variant="orange" height="{{20}}" />
+      <text class="px-mute bg-note">{{daily.note}}</text>
+      <view wx:for="{{daily.missions}}" wx:key="id" class="bg-goal {{item.done ? 'bg-goal--done' : ''}}">
+        <text class="bg-goal-mark">{{item.mark}}</text>
+        <view class="px-col px-grow px-gap8">
+          <text class="px-text">{{item.name}}</text>
+          <text class="px-mute">{{item.desc}}</text>
+        </view>
+        <view class="bg-task-side">
+          <text class="px-dim">{{item.progressText}}</text>
+          <text class="bg-count">{{item.rewardText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="px-panel px-mt16">
+      <view class="px-row--between">
+        <text class="px-panel__title">经理目标</text>
+        <text class="px-mute">{{goalDone}}/{{goalTotal}}</text>
+      </view>
+      <px-progress value="{{goalDone}}" max="{{goalTotal}}" variant="gold" height="{{20}}" />
+      <view wx:for="{{goals}}" wx:key="key" class="bg-goal {{item.done ? 'bg-goal--done' : ''}}">
+        <text class="bg-goal-mark">{{item.done ? '✓' : '·'}}</text>
+        <view class="px-col px-grow px-gap8">
+          <text class="px-text">{{item.text}}</text>
+          <text class="px-mute">{{item.tip}}</text>
+        </view>
+      </view>
+      <view class="px-btn px-btn--ghost px-btn--block px-mt16" bindtap="goStages">去赛季征程 ›</view>
+    </view>
+  </block>
+
+  <view class="px-safe-bottom"></view>
+</view>

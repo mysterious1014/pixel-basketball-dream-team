@@ -1,0 +1,31 @@
+/* pages/bag/bag.wxss —— 背包：左侧稀有度色条 + 信息 + 操作按钮 */
+.bg-tab { height: 52rpx; padding: 0 22rpx; font-size: 24rpx; }
+
+.bg-sum { display: flex; }
+.bg-sum-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.bg-sum-item + .bg-sum-item { border-left: 3rpx solid var(--line-soft); }
+.bg-sum-v { font-size: 30rpx; color: var(--orange); font-weight: bold; }
+
+.bg-item { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 0; }
+.bg-item + .bg-item { border-top: 2rpx solid var(--line-soft); }
+.bg-item--off { opacity: 0.55; }
+.bg-bar { width: 10rpx; height: 76rpx; flex: none; }
+.bg-count { font-size: 24rpx; color: var(--gold); flex: none; }
+.bg-use { width: 150rpx; flex: none; }
+.bg-eq-count { width: 120rpx; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4rpx; }
+
+/* ---------- 竞技商城（里程碑 2）---------- */
+/* 购买按钮列：按钮 + 价格上下排，宽度固定，避免长价格把左侧文案挤没（375×667 基准） */
+.bg-buy { width: 150rpx; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6rpx; }
+/* 分组标题：与条目之间留白比条目之间大，让「时刻卡 / 补给」两段在视觉上分开 */
+.bg-shop-head { display: flex; flex-direction: column; gap: 4rpx; margin: 20rpx 0 6rpx; padding-top: 14rpx; border-top: 2rpx solid var(--line-soft); }
+.bg-note { display: block; margin-top: 12rpx; line-height: 1.7; }
+
+.bg-goal { display: flex; align-items: center; gap: 12rpx; padding: 12rpx 0; }
+.bg-goal + .bg-goal { border-top: 2rpx solid var(--line-soft); }
+.bg-goal-mark { width: 36rpx; flex: none; text-align: center; font-size: 26rpx; color: var(--text-mute); }
+.bg-goal--done .bg-goal-mark { color: var(--hp); }
+.bg-goal--done .px-text { color: var(--text-mute); }
+
+/* 每日任务行右侧状态列（进度 + 奖励，里程碑 4） */
+.bg-task-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4rpx; max-width: 300rpx; }

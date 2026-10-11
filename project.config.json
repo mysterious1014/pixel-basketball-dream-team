@@ -1,0 +1,110 @@
+{
+  "description": "像素篮球梦之队（里程碑 1 + 里程碑 2 羁绊/战术克制/异步 PVP 竞技场）—— 个人学习与技术演示，非商业分发",
+  "projectname": "pixel-basketball-dream-team",
+  "appid": "wxc264b6a69e8c7239",
+  "compileType": "miniprogram",
+  "libVersion": "2.33.0",
+  "miniprogramRoot": "./",
+  "srcMiniprogramRoot": "./",
+  "packOptions": {
+    "ignore": [
+      {
+        "value": "tools",
+        "type": "folder"
+      },
+      {
+        "value": "assets/fonts",
+        "type": "folder"
+      },
+      {
+        "value": "README.md",
+        "type": "file"
+      },
+      {
+        "value": "AGENTS.md",
+        "type": "file"
+      },
+      {
+        "value": ".gitignore",
+        "type": "file"
+      }
+    ],
+    "include": []
+  },
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "coverView": true,
+    "nodeModules": false,
+    "autoAudits": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": false,
+    "uploadWithSourceMap": false,
+    "useCompilerModule": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  },
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "启动页",
+          "pathName": "pages/launch/launch",
+          "query": "",
+          "scene": null
+        },
+        {
+          "name": "招募",
+          "pathName": "pages/recruit/recruit",
+          "query": "",
+          "scene": null
+        },
+        {
+          "name": "阵容",
+          "pathName": "pages/roster/roster",
+          "query": "",
+          "scene": null
+        },
+        {
+          "name": "比赛",
+          "pathName": "pages/match/match",
+          "query": "stageId=s1-1",
+          "scene": null
+        },
+        {
+          "name": "竞技场",
+          "pathName": "pages/arena/arena",
+          "query": "",
+          "scene": null
+        },
+        {
+          "name": "比赛-天梯",
+          "pathName": "pages/match/match",
+          "query": "mode=arena&opp=a01",
+          "scene": null
+        }
+      ]
+    }
+  },
+  "simulatorPluginLibVersion": {}
+}
