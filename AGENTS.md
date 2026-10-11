@@ -89,7 +89,8 @@ node tools/replay-battle.mjs --all --all-arena  # 必须「全部通过：比赛
 - `Remove-Item -Recurse` 被本机策略拦截；删文件用 `[System.IO.File]::Delete($path)`。
 - 一次性脚本 / 探针 / 草稿一律放 `E:\codex\work\`，**不要留在仓库里**（`tools/_fix*.js`、`_probe*` 这类临时文件必须删干净）。
 - 需要保留给用户的文档写进 `E:\codex\docs\像素篮球梦之队\`；仓库自带的 `README.md` / `AGENTS.md` 留在仓库内，不外移、不重命名。
-- **未经用户明确要求，不要 `git commit` / `git push` / 部署。** 本仓库已 `git init` 但刻意保持无 commit 状态。
+- **提交与推送**：本仓已脱离「无 commit 状态」—— 2026-10-11 在 `main` 建立首次提交 `c646fab` 并推送 GitHub（`mysterious1014/pixel-basketball-dream-team`）。**交付收尾（或用户点名）才提交推送，平时不随手 commit**；流程：`node tools/verify.mjs` + `node tools/replay-battle.mjs --all --all-arena` 全绿 → `git commit` → `git push` → 线上校验留证据（远端 SHA == HEAD、raw 文件逐字节比对）；**force-push / 重写历史 / 删除远端分支等破坏性动作先问用户**。
+- **本机没有系统级 git**，只有 Codex 运行时自带的一套；其 `git-credential-manager.exe` 图形授权不可用（不弹窗，连 `--version` 都挂起，别在它身上干等）。本仓推送凭据已配置为 `credential.helper = store --file=E:/codex/.secrets/pixel-basketball-dream-team-git-credentials`（明文只在 `.secrets`，不进 Git / 回复 / 文档）；凭据失效时走 GitHub 设备码流程重新授权（浏览器打开 `https://github.com/login/device` 输入代码，账号里显示为「GitHub CLI」应用）。
 - 密钥 / 明文 token 绝不进 Git、绝不出现在回复或文档里，只写文件路径。
 
 ## 8. 常见改动指引
