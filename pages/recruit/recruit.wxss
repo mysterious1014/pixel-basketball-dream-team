@@ -47,7 +47,10 @@
 .rq-result-body { flex: 1; min-height: 0; margin-top: 20rpx; }
 .rq-result-foot { display: flex; gap: 16rpx; margin-top: 20rpx; }
 
-.rq-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12rpx; }
+/* 十连结果 3 列（旧版 5 列：卡宽仅 ~131rpx，立绘 150rpx + 顶行就超出 3:4 卡高，
+ * 名字 / 位置行被 overflow 裁掉 —— 用户反馈「招募结果没有球员名字」，2026-10-11 修复）。
+ * 3 列下卡宽 ~225rpx，立绘 136rpx + 名字 + 位置行完整落在卡面内。 */
+.rq-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14rpx; }
 .rq-cards--single { grid-template-columns: 1fr; max-width: 340rpx; margin: 40rpx auto 0; }
 
 .rq-card {
@@ -86,7 +89,7 @@
 .rq-rar { font-size: 18rpx; letter-spacing: 1rpx; }
 .rq-name { font-size: 22rpx; color: var(--text); width: 100%; text-align: center; margin-top: 6rpx; }
 .rq-meta { font-size: 16rpx; color: var(--text-mute); }
-.rq-forced { margin-top: 4rpx; font-size: 16rpx; color: var(--navy900); background: var(--gold); padding: 0 8rpx; }
+.rq-forced { position: absolute; right: 0; bottom: 0; font-size: 16rpx; color: var(--navy900); background: var(--gold); padding: 2rpx 8rpx; }
 
 .rq-cards--single .rq-card { aspect-ratio: 3 / 4; }
 .rq-cards--single .rq-ovr { font-size: 48rpx; }

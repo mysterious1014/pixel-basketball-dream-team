@@ -112,7 +112,7 @@
               <text class="rq-ovr" style="color:{{item.color}};">{{item.ovr}}</text>
               <text class="rq-rar" style="color:{{item.color}};">{{item.rarity}}</text>
             </view>
-            <px-portrait cardId="{{item.cardId}}" size="{{150}}" />
+            <px-portrait cardId="{{item.cardId}}" size="{{136}}" />
             <text class="rq-name px-ellipsis">{{item.name}}</text>
             <text class="rq-meta">{{item.position}} · {{item.version}}</text>
             <text wx:if="{{item.forced}}" class="rq-forced">保底</text>
