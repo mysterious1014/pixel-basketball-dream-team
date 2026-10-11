@@ -9,8 +9,8 @@ const CONFIG = {
   /* ---------- 基本信息 ---------- */
   GAME_NAME: '像素篮球梦之队',
   GAME_NAME_EN: 'PIXEL DREAM TEAM',
-  VERSION: '0.5.0-m5',   // 版本号随里程碑递增（0.M.0-mM）；里程碑 4 轮漏回填，本轮随 M5 一并更正
-  MILESTONE: 'M5',
+  VERSION: '0.6.0-m6',   // 版本号随里程碑递增（0.M.0-mM）；M6 = 现役全量扩充 + 立绘精细化 + 比赛页重做
+  MILESTONE: 'M6',
   SAVE_KEY: 'pxbb_save_v1',
   SAVE_SCHEMA: 1,
 
@@ -230,8 +230,10 @@ const CONFIG = {
      * 口径：一局 = 96 条回合战报 + 9 条信息条（4×quarterStart/quarterEnd + finished）。
      *   1× 总时长 ≈ (96×baseMs + 9×infoMs) / 1000 = (96×1450 + 9×800) / 1000 ≈ 146 秒 ≈ 2.4 分钟 ⇒ 落在文档 2–3 分钟区间。
      *   倍速 2× ≈ 73 秒、4× ≈ 37 秒（= 里程碑 2 之前的默认手感，急性子玩家仍可一键跳到）。
-     * 改这两个数只会影响观看时长，**不影响比分**（播放只是逐条渲染 result.log，seed 已定）。 */
-    playback: { baseMs: 1450, infoMs: 800, speeds: [1, 2, 4] },
+     * 改这两个数只会影响观看时长，**不影响比分**（播放只是逐条渲染 result.log，seed 已定）。
+     * animMs / animFrames：回合特写（进球 / 盖帽 / 打铁）的单帧时长与帧数 —— 帧数 x 帧距约 0.76 秒一次特写，
+     *   倍速同比例缩短；演出只在 canvas 里做逐帧位移，不掷随机数、不改变任何比分（暂停 / 跳过会立即停掉并定格）。 */
+    playback: { baseMs: 1450, infoMs: 800, speeds: [1, 2, 4], animMs: 95, animFrames: 8 },
     // 抢断/盖帽附加事件概率（仅影响文字直播与少量回合结果）
     eventChance: { steal: 0.12, blockOnMiss: 0.25 },
 

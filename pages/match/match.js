@@ -11,6 +11,13 @@
  *   ?mode=arena&hist=0         竞技场历史回放：store.replaySnapshot，用存档快照复现，不消耗次数与体力
  *   &seed=xxx                  可选：指定 seed 复现某一局（QA / tools/verify.mjs K 组用它做确定性断言）
  * 战报里的「克制 / 被克」角标来自 battle 每条 log 的 counter 字段（第七章 7.4 战术克制）。
+ *
+ * 里程碑 6 起 Canvas 升级为「真实比例像素球场 + 5v5 球员逐帧演出」：
+ *   - 场景 = 球场白线（边线 / 中线 / 中圈 / 禁区 / 罚球圈 / 三分弧 / 篮板篮筐）+ 十名球员 + 球，
+ *     回合命中 / 盖帽 / 打铁给放大特写（球员名 + 事件标签）；
+ *   - 演出只做视觉（8 帧步进位移，帧参数读 config.battle.playback.animMs / animFrames），
+ *     **不消耗随机数**，暂停 / 倍速 / 跳过不影响比分（seed 已定）；
+ *   - 结算浮层弹出后整块观赛区隐藏（旧版结算后球场残留在浮层背后，属已修复的视觉 bug）。
  */
 const store = require('../../store/index.js');
 const selectors = require('../../store/selectors.js');
@@ -30,6 +37,8 @@ const PLAYBACK = CONFIG.battle.playback || { baseMs: 1450, infoMs: 800, speeds: 
 const SPEEDS = (PLAYBACK.speeds && PLAYBACK.speeds.length) ? PLAYBACK.speeds : [1, 2, 4];
 const BASE_MS = Number(PLAYBACK.baseMs) || 1450;   // 1 倍速下每条回合战报的停留时间
 const INFO_MS = Number(PLAYBACK.infoMs) || 800;    // 分节/加时等信息条更快
+const ANIM_MS = Number(PLAYBACK.animMs) || 95;      // 回合特写单帧时长（帧数 x 帧距 = 一次特写）
+const ANIM_FRAMES = Math.max(2, Math.round(Number(PLAYBACK.animFrames) || 8)); // 特写帧数（steps 逐帧位移）
 
 /* 一局战报的构成（不含加时，加时只会更长）：
  *   回合条数 = 每队每节回合数 × 节数 × 2 队；信息条 = 每节 quarterStart + quarterEnd，外加终场 finished 一条。
@@ -229,6 +238,7 @@ Page(store.connectPage(function (state) {
 
   onUnload() {
     this.stopTimer();
+    this.stopAnim();
   },
 
   onHide() {
@@ -306,92 +316,354 @@ Page(store.connectPage(function (state) {
         self.__ctx = ctx;
         self.__cw = w;
         self.__ch = h;
-        self.drawCourt(null);
+        self.renderScene(null, null);
       });
   },
 
-  /* 画一帧：地板 + 线 + 两侧篮筐 + 记分牌 + 球与攻防球员块 */
-  drawCourt(entry) {
+  /* ================= 里程碑 6：像素球场 + 5v5 球员动画（自包含渲染块） =================
+   * 本块只读 this.__ctx / this.__cw / this.__ch / this.data + 常量 P / SPEEDS / ANIM_MS / ANIM_FRAMES，
+   * 其余全走参数，便于离线预览（work/px6 的预览页直接抽取本块在浏览器里渲染）。
+   * 规范：整数坐标、无渐变、限色（第六章）；演出不消耗任何随机数（可复现红线）。
+   * ------------------------------------------------------------------------------ */
+
+  /* 球场几何：真实半场比例 → 画布坐标（纯函数） */
+  courtGeom(W, H) {
+    const m = Math.max(6, Math.round(Math.min(W, H) * 0.042));
+    const x0 = m, y0 = m, x1 = W - m, y1 = H - m;
+    const w = x1 - x0, h = y1 - y0;
+    return {
+      m: m, x0: x0, y0: y0, x1: x1, y1: y1, w: w, h: h,
+      cx: Math.round((x0 + x1) / 2), cy: Math.round((y0 + y1) / 2),
+      line: Math.max(1, Math.round(Math.min(W, H) / 170)),
+      hoopIn: Math.max(4, Math.round(w * 0.052)),
+      keyLen: Math.max(16, Math.round(w * 0.21)),
+      keyHalf: Math.max(10, Math.round(h * 0.17)),
+      ftR: Math.max(5, Math.round(h * 0.115)),
+      midR: Math.max(6, Math.round(h * 0.115)),
+      arcR: Math.max(12, Math.round(h * 0.44)),
+      cornerIn: Math.max(3, Math.round(h * 0.075)),
+      boardH: Math.max(5, Math.round(h * 0.035))
+    };
+  },
+
+  /* 静态球场：地板 + 白线 + 篮架（返回几何对象，动态层复用） */
+  paintCourt() {
+    const ctx = this.__ctx;
+    if (!ctx) return null;
+    const g = this.courtGeom(this.__cw, this.__ch);
+    const L = '#f2e4c8';
+    /* 地板：竖向木板条（两色交替），再叠一层棋盘压暗让白线跳出来 */
+    ctx.fillStyle = P.court;
+    ctx.fillRect(0, 0, this.__cw, this.__ch);
+    ctx.fillStyle = P.courtDark;
+    const plank = Math.max(5, Math.round(this.__cw / 26));
+    for (let px = 0; px < this.__cw; px += plank * 2) ctx.fillRect(px, 0, plank, this.__ch);
+    ctx.fillStyle = 'rgba(7,12,28,0.10)';
+    for (let py = 0; py < this.__ch; py += 2) {
+      for (let px = ((py / 2) % 2) * 2; px < this.__cw; px += 4) ctx.fillRect(px, py, 2, 1);
+    }
+    ctx.strokeStyle = L;
+    ctx.fillStyle = L;
+    ctx.lineWidth = g.line;
+    /* 边线 + 中线 + 中圈 */
+    ctx.strokeRect(g.x0 + 0.5, g.y0 + 0.5, g.w - 1, g.h - 1);
+    ctx.beginPath();
+    ctx.moveTo(g.cx + 0.5, g.y0);
+    ctx.lineTo(g.cx + 0.5, g.y1);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(g.cx, g.cy, g.midR, 0, Math.PI * 2);
+    ctx.stroke();
+    /* 左右两套：禁区 + 罚球圈 + 限制区弧 + 三分（底角线 + 大弧） + 篮板/篮筐/球网 */
+    const self = this;
+    [1, -1].forEach(function (dir) {
+      const hoopX = dir > 0 ? g.x0 + g.hoopIn : g.x1 - g.hoopIn;
+      const keyOutX = dir > 0 ? g.x0 + g.keyLen : g.x1 - g.keyLen;
+      ctx.strokeRect(Math.min(keyOutX, keyOutX) + 0.5, g.cy - g.keyHalf + 0.5, g.keyLen - 1, g.keyHalf * 2 - 1);
+      ctx.beginPath();
+      ctx.arc(keyOutX, g.cy, g.ftR, 0, Math.PI * 2);
+      ctx.stroke();
+      /* 限制区半圆（面向场地中心） */
+      const ra = Math.max(4, Math.round(g.h * 0.085));
+      ctx.beginPath();
+      if (dir > 0) ctx.arc(hoopX, g.cy, ra, -Math.PI / 2, Math.PI / 2);
+      else ctx.arc(hoopX, g.cy, ra, Math.PI / 2, Math.PI * 1.5);
+      ctx.stroke();
+      /* 三分：底角直线 + 与底角线相交的大弧 */
+      const dyHalf = Math.round(g.h / 2) - g.cornerIn;
+      const dxArc = Math.round(Math.sqrt(Math.max(1, g.arcR * g.arcR - dyHalf * dyHalf)));
+      const yTop = g.y0 + g.cornerIn, yBot = g.y1 - g.cornerIn;
+      const baseX = dir > 0 ? g.x0 : g.x1;
+      ctx.beginPath();
+      ctx.moveTo(baseX, yTop + 0.5);
+      ctx.lineTo(hoopX + dir * dxArc, yTop + 0.5);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(baseX, yBot - 0.5);
+      ctx.lineTo(hoopX + dir * dxArc, yBot - 0.5);
+      ctx.stroke();
+      const a = Math.atan2(dyHalf, dxArc);
+      ctx.beginPath();
+      if (dir > 0) ctx.arc(hoopX, g.cy, g.arcR, -a, a, false);
+      else ctx.arc(hoopX, g.cy, g.arcR, a - Math.PI, Math.PI - a, true);
+      ctx.stroke();
+      /* 篮板（竖线） + 篮筐（橙块） + 球网（抖动像素） */
+      const bx = dir > 0 ? g.x0 + g.line + 1 : g.x1 - g.line - 1;
+      ctx.fillStyle = L;
+      ctx.fillRect(bx, g.cy - g.boardH, Math.max(1, g.line), g.boardH * 2);
+      ctx.fillStyle = P.orange;
+      const rimW = Math.max(3, Math.round(g.w * 0.014));
+      ctx.fillRect(dir > 0 ? bx + 2 : bx - 1 - rimW, g.cy - 1, rimW, 3);
+      ctx.fillStyle = P.textDim;
+      const netX = dir > 0 ? bx + 2 : bx - 1 - rimW;
+      for (let ny = 0; ny < 3; ny++) {
+        for (let nx = 0; nx < rimW; nx++) {
+          if ((nx + ny) % 2 === 0) ctx.fillRect(netX + nx, g.cy + 2 + ny, 1, 1);
+        }
+      }
+      ctx.fillStyle = L;
+    });
+    return g;
+  },
+
+  /* 迷你像素小人尺度：u 像素 = 1 个「设计像素」 */
+  __unit() { return Math.max(3, Math.min(5, Math.round(this.__ch / 72))); },
+
+  /* 画一个像素小人：x,y = 脚底中心；dir = 朝向（1 面向右）；pose = stand/run/jump/contest；lift = 起跳抬升 */
+  drawMan(x, y, dir, kit, pose, lift, scale) {
     const ctx = this.__ctx;
     if (!ctx) return;
-    const W = this.__cw;
-    const H = this.__ch;
-    const side = entry && entry.side;
-    const made = !!(entry && entry.made);
-
-    // 地板：竖向木板条（两个棕色交替，模拟像素木地板）
-    ctx.fillStyle = P.court;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = P.courtDark;
-    const plank = Math.max(6, Math.round(W / 24));
-    for (let x = 0; x < W; x += plank * 2) ctx.fillRect(x, 0, plank, H);
-
-    // 边线
-    const m = Math.round(Math.min(W, H) * 0.06);
-    ctx.strokeStyle = '#f4e6cf';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(m, m, W - m * 2, H - m * 2);
-
-    // 中线 + 中圈
-    const cx = Math.round(W / 2);
-    const cy = Math.round(H / 2);
-    ctx.beginPath();
-    ctx.moveTo(cx, m);
-    ctx.lineTo(cx, H - m);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx, cy, Math.round(Math.min(W, H) * 0.12), 0, Math.PI * 2);
-    ctx.stroke();
-
-    // 两侧禁区 + 篮筐
-    const keyW = Math.round((W - m * 2) * 0.16);
-    const keyH = Math.round((H - m * 2) * 0.5);
-    ctx.strokeRect(m, cy - Math.round(keyH / 2), keyW, keyH);
-    ctx.strokeRect(W - m - keyW, cy - Math.round(keyH / 2), keyW, keyH);
-    ctx.fillStyle = P.orange;
-    ctx.fillRect(m + 2, cy - 5, 6, 10);              // 左侧筐（客队）
-    ctx.fillRect(W - m - 8, cy - 5, 6, 10);          // 右侧筐（主队）
-
-    // 记分牌（像素点阵牌）
-    const bw = Math.round(W * 0.46);
-    const bh = Math.round(H * 0.2);
-    const bx = Math.round(cx - bw / 2);
-    const by = m + 4;
+    const u = (scale || this.__unit());
+    const R = Math.round;
+    const bx = R(x), by = R(y - (lift || 0));
+    const legH = (pose === 'jump' || pose === 'contest') ? 2 : 3;
+    /* 腿（跑动帧一前一后） */
+    ctx.fillStyle = kit.legs;
+    if (pose === 'run') {
+      ctx.fillRect(R(bx - u * 1.3), by - u * legH, u, u * legH);
+      ctx.fillRect(R(bx + u * 0.3), by - u * legH, u, u * legH - u);
+    } else {
+      ctx.fillRect(R(bx - u * 1.2), by - u * legH, u, u * legH);
+      ctx.fillRect(R(bx + u * 0.2), by - u * legH, u, u * legH);
+    }
+    /* 躯干（球衣） */
+    const jy = by - u * (legH + 4);
+    ctx.fillStyle = kit.jer;
+    ctx.fillRect(R(bx - u * 1.5), jy, u * 3, u * 4);
+    ctx.fillStyle = kit.trim;
+    ctx.fillRect(R(bx - u * 1.5), jy + u * 3, u * 3, u);          // 下摆
+    ctx.fillRect(R(bx - u * 1.5), jy, u, u);                      // 左肩滚边
+    ctx.fillRect(R(bx + u * 0.5), jy, u, u);                      // 右肩滚边
+    /* 手臂 */
+    ctx.fillStyle = kit.skin;
+    if (pose === 'jump' || pose === 'contest') {
+      ctx.fillRect(R(bx - u * 0.9), jy - u * 2.2, u * 0.8, u * 2.4);   // 双臂举起
+      ctx.fillRect(R(bx + u * 0.1), jy - u * 2.2, u * 0.8, u * 2.4);
+    } else if (pose === 'run') {
+      ctx.fillRect(R(bx + dir * u * 0.9), jy + u * 0.4, u * 0.8, u * 2.2); // 前后摆臂
+      ctx.fillRect(R(bx - dir * u * 1.7), jy + u * 0.8, u * 0.8, u * 1.8);
+    } else {
+      ctx.fillRect(R(bx - u * 2.1), jy + u * 0.3, u * 0.7, u * 2.4);
+      ctx.fillRect(R(bx + u * 1.4), jy + u * 0.3, u * 0.7, u * 2.4);
+    }
+    /* 头（皮肤 + 发型 + 眼睛） */
+    const hy = jy - u * 3.2;
+    ctx.fillStyle = kit.skin;
+    ctx.fillRect(R(bx - u), hy, u * 2, u * 2.6);
+    ctx.fillStyle = kit.hair;
+    ctx.fillRect(R(bx - u), hy - u * 0.8, u * 2, u * 1.1);
     ctx.fillStyle = P.navy900;
-    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillRect(R(bx + dir * u * 0.2), hy + u * 0.9, Math.max(1, R(u * 0.45)), Math.max(1, R(u * 0.45)));
+  },
+
+  /* 球（含 1px 接缝） */
+  drawBall(x, y) {
+    const ctx = this.__ctx;
+    if (!ctx) return;
+    const u = this.__unit();
+    const s = Math.max(3, Math.round(u * 1.1));
+    const bx = Math.round(x - s / 2), by = Math.round(y - s / 2);
+    ctx.fillStyle = P.gold;
+    ctx.fillRect(bx, by, s, s);
+    if (s >= 3) {
+      ctx.fillStyle = '#7a4a10';
+      ctx.fillRect(bx, by + Math.floor(s / 2), s, 1);
+      ctx.fillRect(bx + Math.floor(s / 2), by, 1, s);
+    }
+  },
+
+  /* 命中特写：放大版小人 + 姓名牌（milestone 6「场上球员动画特写」） */
+  drawCloseUp(pane, kit, pose, name, label) {
+    const ctx = this.__ctx;
+    if (!ctx || !pane) return;
+    const R = Math.round;
+    const s = Math.max(4, Math.round(pane.h / 18));
+    ctx.fillStyle = 'rgba(7,12,28,0.88)';
+    ctx.fillRect(pane.x, pane.y, pane.w, pane.h);
     ctx.strokeStyle = P.line;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bx, by, bw, bh);
-    ctx.font = 'bold ' + Math.max(11, Math.round(bh * 0.5)) + 'px monospace';
+    ctx.lineWidth = Math.max(1, this.courtGeom(this.__cw, this.__ch).line + 1);
+    ctx.strokeRect(pane.x + 0.5, pane.y + 0.5, pane.w - 1, pane.h - 1);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = P.gold;
-    ctx.fillText(String(this.data.homeScore), bx + Math.round(bw * 0.28), by + Math.round(bh * 0.52));
-    ctx.fillText(String(this.data.awayScore), bx + Math.round(bw * 0.72), by + Math.round(bh * 0.52));
-    ctx.fillStyle = P.textDim;
-    ctx.font = Math.max(8, Math.round(bh * 0.24)) + 'px monospace';
-    ctx.fillText(String(this.data.quarterLabel || ''), cx, by + Math.round(bh * 0.52));
-    ctx.fillText('HOME', bx + Math.round(bw * 0.28), by + Math.round(bh * 0.86));
-    ctx.fillText('AWAY', bx + Math.round(bw * 0.72), by + Math.round(bh * 0.86));
+    ctx.font = 'bold ' + Math.max(9, Math.round(pane.h * 0.14)) + 'px monospace';
+    ctx.fillText(label, pane.x + pane.w / 2, pane.y + Math.round(pane.h * 0.16));
+    ctx.fillStyle = P.text;
+    ctx.font = 'bold ' + Math.max(8, Math.round(pane.h * 0.12)) + 'px monospace';
+    ctx.fillText(String(name || '').slice(0, 6), pane.x + pane.w / 2, pane.y + pane.h - Math.round(pane.h * 0.12));
+    this.drawMan(pane.x + pane.w / 2, pane.y + pane.h - Math.round(pane.h * 0.24), 1, kit, pose, 0, s);
+  },
 
-    // 球与攻防球员块（像素方块，不用圆）
-    const unit = Math.max(6, Math.round(Math.min(W, H) * 0.055));
-    const attackX = side === 'home' ? Math.round(W * 0.7) : (side === 'away' ? Math.round(W * 0.3) : cx);
-    const hoopX = side === 'home' ? W - m - 8 : m + 2;
-    const ballX = made && side ? hoopX : attackX;
-    const ballY = cy + Math.round((made && side ? 0 : unit * 1.6));
-
-    if (side) {
-      // 防守方块
-      ctx.fillStyle = side === 'home' ? P.rarity.SR : P.rarity.R;
-      ctx.fillRect(Math.round(ballX + (side === 'home' ? -unit * 2.2 : unit * 1.4)), Math.round(ballY - unit * 0.4), unit, Math.round(unit * 1.6));
-      // 进攻方块
-      ctx.fillStyle = side === 'home' ? P.orange : '#7ee8ff';
-      ctx.fillRect(Math.round(ballX - unit / 2), Math.round(ballY - unit * 0.8), unit, Math.round(unit * 1.8));
+  /* 一帧完整场景：静态球场 + 10 名球员 + 球 + 特写/横幅。entry=null 或 f=null ⇒ 定格 */
+  renderScene(entry, f) {
+    const ctx = this.__ctx;
+    if (!ctx) return;
+    const g = this.paintCourt();
+    if (!g) return;
+    const R = Math.round;
+    const u = this.__unit();
+    const homeKit = { jer: P.orange, trim: P.navy900, legs: P.navy700, skin: '#e8b98a', hair: '#1b1b1f' };
+    const awayKit = { jer: '#dfe7ff', trim: '#2f5fa8', legs: '#2f3f6b', skin: '#a9714b', hair: '#2b2f45' };
+    const kits = { home: homeKit, away: awayKit };
+    const fixture = [-0.62, 0.62, -0.26, 0.34, 0.04];
+    const homeSpot = [0.09, 0.22, 0.35, 0.48, 0.60];
+    const awaySpot = [0.91, 0.78, 0.65, 0.52, 0.40];
+    const anchor = (side, i) => ({
+      x: g.x0 + g.w * (side === 'home' ? homeSpot[i] : awaySpot[i]),
+      y: g.cy + fixture[i] * (g.h / 2)
+    });
+    const fx = (v) => Math.round(v);                    // 位置量化到整像素（像素风）
+    const side = entry && (entry.side === 'home' || entry.side === 'away') ? entry.side : '';
+    const isRound = !!side;
+    const fnum = (f === null || f === undefined) ? 7 : f;
+    const attackDir = side === 'home' ? 1 : -1;
+    const hoopX = attackDir > 0 ? g.x1 - g.hoopIn : g.x0 + g.hoopIn;
+    const hIdx = (str) => {
+      let h = 0;
+      const t = String(str || '');
+      for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+      return h % 5;
+    };
+    const shooterIdx = isRound ? hIdx(entry.shooterUid || entry.shooter) : 0;
+    const defIdx = isRound ? hIdx((entry.defenderUid || entry.defender) + 'd') : 0;
+    const made = !!(entry && entry.made);
+    const shootX = fx(hoopX - attackDir * g.arcR * 0.42);
+    const shootY = fx(g.cy + (fixture[shooterIdx] * g.h * 0.1));
+    const runT = isRound ? Math.min(1, fnum / 3) : 0;
+    const jumpT = (isRound && fnum >= 3 && fnum <= 6) ? (fnum === 3 ? 0.25 : (fnum === 4 ? 0.85 : (fnum === 5 ? 1 : 0.4))) : 0;
+    const lift = jumpT * u * 2.2;
+    /* 十名球员 */
+    for (const s of ['home', 'away']) {
+      const kit = kits[s];
+      const shift = isRound ? (s === side ? attackDir * g.w * 0.07 : -attackDir * g.w * 0.02) : 0;
+      for (let i = 0; i < 5; i++) {
+        const a = anchor(s, i);
+        let px = a.x + shift, py = a.y, pose = 'stand', lf = 0;
+        const moving = isRound && ((s === side) || (s !== side && i === defIdx));
+        if (isRound && s === side && i === shooterIdx) {
+          px = a.x + shift + (shootX - (a.x + shift)) * runT;
+          py = a.y + (shootY - a.y) * runT;
+          pose = fnum >= 3 && fnum <= 6 ? 'jump' : (fnum < 3 ? 'run' : 'stand');
+          lf = lift;
+        } else if (isRound && s !== side && i === defIdx) {
+          const dpos = anchor(side, shooterIdx);
+          px = a.x + (dpos.x + attackDir * u * 2.4 - a.x) * runT;
+          py = a.y + (dpos.y - a.y) * runT;
+          pose = fnum >= 4 && fnum <= 6 ? 'contest' : 'run';
+          lf = jumpT * u * 1.8;
+        } else if (moving && fnum < 3) {
+          pose = 'run';
+        }
+        this.drawMan(px, py, s === 'home' ? 1 : -1, kit, pose, lf);
+      }
     }
-    // 球
-    ctx.fillStyle = P.gold;
-    ctx.fillRect(Math.round(ballX - unit * 0.3), Math.round(ballY - unit * 2.2), Math.round(unit * 0.6), Math.round(unit * 0.6));
+    /* 球 */
+    if (!isRound) {
+      this.drawBall(g.cx, g.cy + u);
+    } else {
+      const hand = anchor(side, shooterIdx);
+      const hx = hand.x + attackDir * g.w * 0.07 + (shootX - (hand.x + attackDir * g.w * 0.07)) * runT;
+      const hy = hand.y + (shootY - hand.y) * runT - u * 8 - lift;
+      const target = { x: hoopX - attackDir * 2, y: g.cy - u * 2 };
+      let bx = hx, by = hy;
+      if (fnum >= 3) {
+        const p = Math.min(1, (fnum - 3) / 2);
+        bx = hx + (target.x - hx) * p;
+        by = hy + (target.y - hy) * p - Math.sin(p * Math.PI) * u * 3.2;
+      }
+      if (fnum === 6) {
+        if (made) { bx = target.x; by = target.y; }
+        else { bx = hoopX + attackDir * -g.w * 0.10; by = g.cy + g.h * 0.10; }
+      } else if (fnum >= 7) {
+        if (made) { bx = target.x; by = target.y; }
+        else { bx = hoopX + attackDir * -g.w * 0.10; by = g.cy + g.h * 0.14; }
+      }
+      this.drawBall(bx, by);
+      /* 命中火花：篮筐四周 4 个像素点（f5-f7） */
+      if (made && fnum >= 5) {
+        ctx.fillStyle = P.gold;
+        ctx.fillRect(R(target.x - u), R(target.y - u), 1, 1);
+        ctx.fillRect(R(target.x + u), R(target.y - u), 1, 1);
+        ctx.fillRect(R(target.x - u), R(target.y + u), 1, 1);
+        ctx.fillRect(R(target.x + u), R(target.y + u), 1, 1);
+      }
+    }
+    /* 特写镜头（回合事件 f>=2；命中/盖帽/打铁均给特写） */
+    if (isRound && fnum >= 2) {
+      const pane = {
+        w: Math.round(g.w * 0.34), h: Math.round(g.h * 0.56),
+        x: hoopX > g.cx ? g.x0 + Math.round(g.line * 2) : g.x1 - Math.round(g.w * 0.34) - Math.round(g.line * 2),
+        y: g.y0 + Math.round(g.line * 2)
+      };
+      const blockish = entry.event === 'block';
+      const kit = kits[blockish ? (side === 'home' ? 'away' : 'home') : side];
+      const label = made ? ('+' + (entry.points || 2)) : (blockish ? '盖帽' : (entry.event === 'rebound' ? '篮板' : '打铁'));
+      const pose = made ? (jumpT > 0 ? 'jump' : 'contest') : (blockish ? 'contest' : 'jump');
+      const name = (blockish ? entry.defender : entry.shooter) || '';
+      this.drawCloseUp(pane, kit, pose, name, label);
+    }
+    /* 节间横幅（信息条：只显示节次，避免长句盖住球场） */
+    if (entry && entry.kind === 'info') {
+      const text = entry.final ? '终场' : (entry.qLabel || '');
+      if (text) {
+        const bw = Math.round(g.w * 0.34), bh = Math.round(g.h * 0.16);
+        const bx = g.cx - Math.round(bw / 2), by = g.cy - Math.round(bh / 2);
+        ctx.fillStyle = 'rgba(7,12,28,0.85)';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = P.orange;
+        ctx.lineWidth = g.line;
+        ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+        ctx.fillStyle = P.gold;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold ' + Math.max(11, Math.round(bh * 0.44)) + 'px monospace';
+        ctx.fillText(text, g.cx, by + Math.round(bh / 2));
+      }
+    }
+  },
+
+  /* 播放一次事件动画（8 帧、步进式位移；倍速越快帧距越短，绝不改比分） */
+  playScene(entry) {
+    this.stopAnim();
+    this.__lastEntry = entry;
+    if (!this.__ctx) return;
+    if (entry && entry.kind === 'info') { this.renderScene(entry, null); return; }
+    const speed = (SPEEDS[this.data.speedIndex] || 1);
+    const frameMs = Math.max(24, Math.round(ANIM_MS / speed));
+    const self = this;
+    let f = 0;
+    this.renderScene(entry, 0);
+    const stepFn = function () {
+      f++;
+      if (f >= ANIM_FRAMES) { self.__animTimer = null; self.renderScene(entry, null); return; }
+      self.renderScene(entry, f);
+      self.__animTimer = setTimeout(stepFn, frameMs);
+    };
+    this.__animTimer = setTimeout(stepFn, frameMs);
+  },
+
+  stopAnim() {
+    if (this.__animTimer) { clearTimeout(this.__animTimer); this.__animTimer = null; }
   },
 
   /* ---------- 播放控制 ---------- */
@@ -430,11 +702,12 @@ Page(store.connectPage(function (state) {
     // 交替两个等价 class：class 名变化才能真正重启 CSS 动画（steps 逐帧闪烁）
     if (entry.made && entry.side === 'home') patch.flash = (i % 2 === 0) ? 'mt-flash-a' : 'mt-flash-b';
     this.setData(patch);
-    this.drawCourt(entry);
+    this.playScene(entry);
   },
 
   pause() {
     this.stopTimer();
+    this.stopAnim();
     if (this.data.playing) this.setData({ playing: false });
   },
 
@@ -472,7 +745,7 @@ Page(store.connectPage(function (state) {
     patch.progress = 100;
     patch.scrollInto = 'lg-' + (log.length - 1);
     this.setData(patch);
-    this.drawCourt(log[log.length - 1]);
+    /* 观赛区随结算整组隐藏，这里不再补画最后一帧（里程碑 6 修复「结算后球场残留」） */
     this.finish();
   },
 
@@ -481,6 +754,7 @@ Page(store.connectPage(function (state) {
    * 星级是 PVE 赛季征程的口径）。战术克制统计两种模式都显示：双方打法 + 防守策略 + 克 / 被克次数。 */
   finish() {
     this.stopTimer();
+    this.stopAnim();
     const r = this.result;
     if (!r) return;
     const rewards = this.rewards || {};
@@ -608,7 +882,7 @@ Page(store.connectPage(function (state) {
       homeCounterText: counterText(r.counters && r.counters.home),
       awayCounterText: counterText(r.counters && r.counters.away)
     });
-    this.drawCourt(r.log[r.log.length - 1]);
+    this.stopAnim();
     if (r.result === 'win') { wx.vibrateShort && wx.vibrateShort({ type: 'medium' }); }
   },
 

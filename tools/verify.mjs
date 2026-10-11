@@ -1996,7 +1996,8 @@ check('比赛页模板：星级按模式隐藏，竞技场结算 / 回放说明 
     ['wx:if="{{counterEnabled}}"', '缺战术克制统计块'],
     ['wx:if="{{item.counter}}" class="mt-tc {{item.counterCls}}">{{item.counterText}}', '战报行缺克制角标'],
     ['bindtap="replay">{{replayLabel}}', '底部「再战」按钮文案未按模式化'],
-    ['bindtap="backToStages">{{backLabel}}', '底部「返回」按钮文案未按模式化']
+    ['bindtap="backToStages">{{backLabel}}', '底部「返回」按钮文案未按模式化'],
+    ['wx:if="{{!error && !finished}}"', '观赛区未随结算隐藏（球场会残留在结算浮层后）']
   ];
   need.forEach((n) => assert(K_MATCH_WXML.indexOf(n[0]) !== -1, n[1]));
   return true;
@@ -3022,6 +3023,7 @@ check('合规：全部解说模板不声称数据来自 NBA 官方 / 2K 等商�
 check('播放节奏：1× 单局落在文档 2–3 分钟区间，倍速单调，节奏常量只在 config.js（页面不硬编码）', () => {
   const pb = CONFIG.battle.playback;
   assert(pb && Number(pb.baseMs) > 0 && Number(pb.infoMs) > 0, 'config.battle.playback 缺失或非法');
+  assert(Number(pb.animMs) >= 24 && Number(pb.animFrames) >= 4 && Number(pb.animFrames) <= 16, 'config.battle.playback.animMs / animFrames 缺失或非法（演出帧距 / 帧数）');
   /* 口径与 pages/match/match.js 一致：一局 = 96 条回合战报 + 9 条信息条（4×quarterStart/quarterEnd + finished） */
   const rounds = CONFIG.battle.roundsPerQuarter * CONFIG.battle.quarters * 2;
   const infos = CONFIG.battle.quarters * 2 + 1;
@@ -3037,6 +3039,7 @@ check('播放节奏：1× 单局落在文档 2–3 分钟区间，倍速单调�
   assert(src.indexOf('CONFIG.battle.playback') !== -1, '比赛页应读 config.battle.playback');
   assert(!/const BASE_MS = \d/.test(src) && !/const INFO_MS = \d/.test(src), '比赛页硬编码了播放节奏（AGENTS.md §3：数值只允许改 config.js）');
   assert(src.indexOf('paceText') !== -1, '比赛页应给出时长提示（玩家得知道 1× 有多长）');
+  assert(src.indexOf('PLAYBACK.animMs') !== -1 && src.indexOf('PLAYBACK.animFrames') !== -1, '比赛页应把演出帧参数读自 config.battle.playback（不硬编码 95ms / 8 帧）');
   return true;
 });
 

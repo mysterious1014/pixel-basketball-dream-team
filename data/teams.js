@@ -24,6 +24,17 @@ const TEAMS = {
   TOR: { abbr: 'TOR', city: '多伦多', cityAlias: '枫叶城', colors: { primary: '#b0322f', secondary: '#2f2f2f' } },
   ORL: { abbr: 'ORL', city: '奥兰多', cityAlias: '魔幻城', colors: { primary: '#2b62a8', secondary: '#c9ced6' } },
   CLE: { abbr: 'CLE', city: '克利夫兰', cityAlias: '湖畔钢城', colors: { primary: '#8c2f39', secondary: '#c9a227' } },
+  NYK: { abbr: 'NYK', city: '纽约', cityAlias: '不夜城', colors: { primary: '#2b57a5', secondary: '#e8862f' } },
+  BKN: { abbr: 'BKN', city: '布鲁克林', cityAlias: '桥港城', colors: { primary: '#4a4a56', secondary: '#c9c9d9' } },
+  DET: { abbr: 'DET', city: '底特律', cityAlias: '齿轮城', colors: { primary: '#9c2f38', secondary: '#c9d3e0' } },
+  IND: { abbr: 'IND', city: '印第安纳', cityAlias: '竞速城', colors: { primary: '#c9a227', secondary: '#26366b' } },
+  MEM: { abbr: 'MEM', city: '孟菲斯', cityAlias: '蓝调城', colors: { primary: '#3b5b8c', secondary: '#a9c7e8' } },
+  NOP: { abbr: 'NOP', city: '新奥尔良', cityAlias: '河口岸', colors: { primary: '#2b6b5f', secondary: '#d9b44a' } },
+  UTA: { abbr: 'UTA', city: '盐湖城', cityAlias: '雪岭城', colors: { primary: '#4a3f8c', secondary: '#79c9c2' } },
+  WAS: { abbr: 'WAS', city: '华盛顿', cityAlias: '国会城', colors: { primary: '#33518c', secondary: '#c95b4a' } },
+  CHA: { abbr: 'CHA', city: '夏洛特', cityAlias: '皇后城', colors: { primary: '#2f8c6b', secondary: '#7fd0b9' } },
+  ATL: { abbr: 'ATL', city: '亚特兰大', cityAlias: '桃树城', colors: { primary: '#b33a3a', secondary: '#e8d24a' } },
+  FA: { abbr: 'FA', city: '自由市场', cityAlias: '自由城', colors: { primary: '#5a5a6e', secondary: '#c9c9d9' } },
   DTC: { abbr: 'DTC', city: '梦之队青训营', cityAlias: '梦之营', colors: { primary: '#26366b', secondary: '#ff8a1f' } }
 };
 

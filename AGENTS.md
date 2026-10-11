@@ -64,7 +64,7 @@ Page(store.connectPage(function (state, self) {
 ## 5. 像素风规范（第六章）
 
 - 调色板：只用 `config.palette` 里的 16 色（深藏蓝底 + 活力橙 / 金点缀），单图 ≤32 色，**禁渐变**，过渡用抖动（dithering）。
-- 位图：`image-rendering: pixelated`；素材按整数倍放大（立绘 32×32 设计 → 64×64 输出；Tab 图标 16×16 → 80×80）。
+- 位图：`image-rendering: pixelated`；立绘 64×64 原生绘制（肤色 / 发型 / 发色 / 胡须 / 发带墨镜 / 体型 6 项特征表见 `tools/portraits-spec.mjs`，139 位球员手工特征 + 青训哈希兜底，改完跑 `node tools/gen-assets.mjs --portraits-only`）；Tab 图标 16×16 → 80×80 整数倍输出。
 - 动画：抽卡翻牌 / 进球反馈 / UI 反馈一律用 `steps()` 逐帧位移或抖动，**禁用 3D 透视旋转、禁用平滑缓动**。
 - 字体：`config.art.fontStack` = `"Press Start 2P", "Zpix", "FZPXJW", "Courier New", monospace`。想启用真像素中文字体，把 `Zpix.ttf` 放进 `assets/fonts/` 再填 `config.art.localFontPath`（该目录已 gitignore、已从打包排除）。
 - 字号：正文不小于 24rpx；比分与 OVR 用大号像素粗体。适配基准 375×667。
@@ -125,6 +125,7 @@ node tools/replay-battle.mjs --all --all-arena  # 必须「全部通过：比赛
   - **SSR / UR 必须限购**（M 组会抓），否则刷币就能让全队戴上「81 分之夜」。
   - 改完跑 M 组：第 1 条查数据、第 4 条交叉校验「`shopView.canBuy` == `buyArenaItem().ok`」（防「按钮亮着但点了没反应」）。
 - **调播放节奏**：改 `config.battle.playback`（`baseMs` / `infoMs` / `speeds`），**不要动 `pages/match/match.js` 里的常量**（页面只读 config，M 组第 12 条会扫源码里有没有 `const BASE_MS = 数字`）。时长口径 = 96 条回合战报 × `baseMs` + 9 条信息条 × `infoMs`，1× 必须落在文档要求的 120–180 秒。改这两个数只影响观看时长，不影响比分。
+- **调比赛画面（球场 / 特写动画，里程碑 6）**：渲染块整体在 `pages/match/match.js`（`courtGeom / paintCourt / drawMan / drawBall / drawCloseUp / renderScene / playScene`）—— 比例系数在 `courtGeom`，帧距 / 帧数在 `config.battle.playback.animMs / animFrames`（M 组会扫页面对这两个字段的引用）。演出只做逐帧位移，**绝不消耗随机数**；暂停 / 跳过 / 卸载 / 结算都会 `stopAnim()` 定格。观赛区整组挂在 `wx:if="{{!error && !finished}}"` 下，结算浮层弹出后必须隐藏（K 组有断言锁死）。
 - **加一个可进化的球员 / 调时空进化消耗**：能否进化只取决于「该球员有没有巅峰传奇版」—— `data/players.js` 加卡即自动纳入（`utils/evolution.js` 与页面一行都不用动）；调消耗改 `config.evolution.peakCost`（现 SR 20 / SSR 30 / UR 40），成套倍率改 `pairMul`（现 1.5，**必须 > 1** —— N 组有「成套价值严格大于分开分解」的断言，否则成套这条路就没有存在意义）。分解价值复用 `config.growth.dupToShard`（N2 / R4 / SR8 / SSR16 / UR32），按**出厂稀有度**计值，别改成有效稀有度（先升满再拆会套利，「收益可公示」也保不住）。碎片按球员隔离存 `state.evolution.shards[playerId]`，读侧一律 `Number(...) || 0`、清到 0 要 `delete`；「材料在阵容中」是硬拒绝（与升星的自动摘除 donor 不同，别照抄升星）。改完跑 `verify.mjs` N 组（16 项）；进化不动战斗逻辑，`replay-battle --all --all-arena` 属确认性回归。
 - **调市场数值 / 加橱窗档位**：价格与刷新费全在 `config.market`（买价 N 900 / R 1800 / SR 3600 / SSR 7200 / UR 14400，刷新 300）；`sellPrice` 是独立表但**必须恒等于买价 ÷ 3**（O 组第 1 条锁死防套利护城河）。橱窗几格、每格出什么稀有度与相对权重在 `data/market.js#SLOTS`（权重不用凑 100，只从池子里有货的稀有度抽）——市场池自动 = 全部非巅峰卡（`utils/market.js#poolCards`），**不要往池子里放巅峰卡**（会同时打崩抽卡与时空进化两条线）。货架 = `f(dayKey, rerolls)` 纯函数：**不要让它读「已拥有些什么」**、也不要往 `state.market` 里存商品列表（裁决 4 / 5），刷新只做 `rerolls + 1`。入口是主页快捷入口 + 个人页摘要面板（非 tabBar 页，一律 `navigateTo`，见坑 15）。改完跑 `verify.mjs` O 组（15 项）。
 - **加一条每日任务 / 调奖励**：`data/daily.js` 追加 `{ id, counter, target, name, desc, reward }`。硬约束：`counter` 必须落在 `utils/daily.js#COUNTER_KEYS`（结算 / 抽卡只会推进这五个键）、`target` 为正整数、`reward.kind` 只允许 `gold | diamond | item`，且 `item` 必须能在 `data/items.js` 解析到、**不得是装备 / 时刻卡**（直接战力）。达成判据 = 「本次推进跨过阈值」（`before < target ≤ after`）——一日内计数单调递增，所以**不要加领取账本**（`state.daily` 只有 `dayKey + counters` 两个字段；跨天滚动只由 commands/reducer 拿到新 `dayKey` 时落库，视图虚拟滚动不写档）。改完跑 `verify.mjs` Q 组（20 项）。
@@ -154,3 +155,5 @@ node tools/replay-battle.mjs --all --all-arena  # 必须「全部通过：比赛
 19. **verify 的源码纪律断言扫全文件文本（含注释）**。`utils/market.js` 头注释里的字面「不调用 `Date.now()/Math.random()`」⇒ O 组「不得有 Math.random」当场红（它匹配字面模式，注释也算）。措辞统一成「不取系统时间、不掷随机」（参照 `utils/evolution.js`）。另外**新增 verify 分组前先 `node --check tools/verify.mjs`**：本轮还踩了两个语法级错误 —— 新组简写 `MC` 与时刻卡组的 `const MC` 撞名、坏正则（`Math.random[ ]*(` 的 `(` 未转义 ⇒ 正则未闭合），都是 `node --check` 当场可见的。
 20. **市场的「卡真在货架上」由 reducer 二次重算**。commands 把 `(dayKey, rerolls)` 随 action 带入，reducer 用同一对纯输入重算 `shelfOf`，并对账 `dayKey == fmt.dayKeyOf(p.now)` / `p.rerolls == state.market.rerolls` / `p.price == 买价公式`（O 组第 12 条：直派伪造 payload 一律不动存档）。刷新只做 `rerolls + 1` —— 不要把商品列表 / 库存塞进 `state.market`（裁决 4 / 5）；`dayKey` 只允许 commands 从 `now()` 切片（与竞技场同规）。
 21. **卡从收藏消失的路径必须统一退回随身附件**。本轮把 `REMOVE_CARD` / `EVOLVE_SALVAGE` / `EVOLVE_PAIR` 与新的 `MARKET_SELL` 全部接到 `reducers.js` 的 `attachmentsOf / returnAttachments`：装备与时刻卡退回背包、通知里写明去向（N 组第 16 条锁死）。历史上这类路径曾把附件随卡静默吞掉 —— 新加任何「消耗 / 移除卡牌」的操作，先想这条。
+22. **结算后观赛区必须整组隐藏（球场残留 bug）**。比赛页旧版只弹结算浮层，Canvas 球场还在浮层背后显示 —— 用户能直接看到「比赛结束后球场还在」。修法 = 观赛区包一层 `wx:if="{{!error && !finished}}"` + `finish() / skip() / onUnload()` 里 `stopAnim()` 定格；别改成「给球场盖遮罩」：遮罩挡不住动画定时器，也不解决语义。K 组已锁这条判据。
+23. **演出渲染块被离线预览抽取时，页内常量要一起进预览桩**。court 渲染块（`courtGeom`…`playScene`）在设计期用 `E:\codex\work` 的一次性预览页抽进浏览器执行，块里引用 `ANIM_MS / SPEEDS` 这类页内常量；预览桩漏定义就是整场白屏（`node --check` 查不出模板字符串里的内容）。给渲染块加依赖时，同步补预览桩再截图。

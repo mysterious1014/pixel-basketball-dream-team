@@ -10,7 +10,9 @@
     </view>
   </block>
 
-  <block wx:else>
+  <!-- 观赛区（记分牌 / 球场 / 控制条 / 文字直播）：结算浮层弹出后整组隐藏，
+       旧版结算后球场仍残留在浮层背后（里程碑 6 修复） -->
+  <block wx:if="{{!error && !finished}}">
     <!-- 记分牌 -->
     <view class="mt-board">
       <view class="mt-team">
