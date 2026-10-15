@@ -3548,8 +3548,13 @@ check('买入成功路径：金币扣减 / 新实例 source=market / 通知口�
   nSeed([]);
   const now = Date.now();
   const mv = selectors.marketView(store.getState(), now);
-  const row = mv.shelf[0];
-  assert(row && row.canBuy, '起始存档应买得起第一格：' + JSON.stringify(row));
+  /* 货架 = f(dayKey)（裁决 4/5），而起始阵容里就有 academy_*_1 / academy_*_3：
+     若某天的第一格恰好是这几张，下面「新实例 source=market」会被起始卡抢先命中
+     （2026-10-15 首格 = academy_pf_1 时踩到）。改成挑第一格「未持有」的货，
+     判据本身不放松 —— 仍然断言买回来的实例必须全新且 source=market。 */
+  const owned0 = Object.keys(store.getState().collection).map((u) => store.getState().collection[u].cardId);
+  const row = mv.shelf.filter((r) => r.canBuy && owned0.indexOf(r.cardId) === -1)[0] || mv.shelf[0];
+  assert(row && row.canBuy, '起始存档应买得起橱窗里的卡：' + JSON.stringify(row));
   const gold0 = store.getState().profile.gold;
   const r = store.marketBuy(row.cardId);
   assert(r && r.ok === true && r.price === row.price, '买入失败：' + JSON.stringify(r));
@@ -3563,7 +3568,9 @@ check('买入成功路径：金币扣减 / 新实例 source=market / 通知口�
   assert(r2 && r2.ok === true, '不限购口径被破坏：' + JSON.stringify(r2));
   const count = Object.keys(store.getState().collection).filter((u) => store.getState().collection[u].cardId === row.cardId).length;
   assert(count === 2, '第二张没入库：' + count);
-  assert(selectors.marketView(store.getState(), now).shelf[0].ownedText.indexOf('已有') !== -1, '视图里的持有数没更新');
+  const mv2 = selectors.marketView(store.getState(), now);
+  const row2 = mv2.shelf.filter((r) => r.cardId === row.cardId)[0];
+  assert(row2 && row2.ownedText.indexOf('已有') !== -1, '视图里的持有数没更新');
   return true;
 });
 

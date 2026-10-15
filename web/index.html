@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070c1c">
+<link rel="icon" type="image/png" href="assets/ui/logo.png">
+<title>像素篮球梦之队</title>
+<style>
+  /* 尺寸基准：小程序 750rpx 设计宽；容器宽度 = min(视口, 480px)，--px-rpx 随之换算 */
+  :root { --px-rpx: calc(min(100vw, 480px) / 750); color-scheme: dark; }
+  html, body { margin: 0; padding: 0; background: #070c1c; color: #e8ecff; }
+  body {
+    font-family: "Press Start 2P", "Zpix", "FZPXJW", "Courier New", monospace;
+    -webkit-font-smoothing: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  /* WXML 标签语义补齐（保留标签名，让 app.wxss 的标签选择器原样生效） */
+  view, scroll-view, cover-view, swiper, swiper-item { display: block; }
+  text { display: inline; }
+  image, img { display: inline-block; }
+  canvas { display: block; }
+  px-portrait, px-progress, resource-bar, radar-chart, player-card { display: block; }
+  scroll-view { overflow: auto; -webkit-overflow-scrolling: touch; }
+  img { image-rendering: pixelated; image-rendering: -moz-crisp-edges; }
+
+  /* 导航栏：小程序有原生导航栏（标题 + 返回箭头），H5 / WebView 没有，运行时兜底画一条，
+     否则从「图鉴 / 背包 / 市场 / 王朝 / 设置 / 比赛」这些 navigateTo 进来的页面退不出去。 */
+  :root { --px-navh: calc(88 * var(--px-rpx)); }
+  #px-nav {
+    position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    width: min(100vw, 480px); height: var(--px-navh); z-index: 80;
+    display: flex; align-items: center;
+    background: #070c1c; border-bottom: 3px solid #000;
+    box-sizing: border-box; padding: 0 calc(12 * var(--px-rpx));
+  }
+  .px-nav__back {
+    width: calc(56 * var(--px-rpx)); height: calc(52 * var(--px-rpx));
+    display: none; align-items: center; justify-content: center; cursor: pointer;
+    border: 3px solid #3c4f8f; color: #e8ecff; font-size: calc(30 * var(--px-rpx));
+    line-height: 1; flex: none;
+  }
+  #px-nav.px-nav--back .px-nav__back { display: flex; }
+  .px-nav__title {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-size: calc(26 * var(--px-rpx)); color: #e8ecff; pointer-events: none;
+  }
+  #px-root { width: min(100vw, 480px); margin: 0 auto; min-height: 100vh; padding-top: var(--px-navh); }
+  .px-page { min-height: 100vh; }
+
+  /* 底部 tabBar（小程序原生 tabBar 的 H5 替代） */
+  #px-tabbar {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 0; width: min(100vw, 480px);
+    display: flex; border-top: 2px solid #000; z-index: 60;
+  }
+  .px-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: calc(8 * var(--px-rpx)) 0 calc(10 * var(--px-rpx)); cursor: pointer; }
+  .px-tab-icon { width: calc(48 * var(--px-rpx)); height: calc(48 * var(--px-rpx)); image-rendering: pixelated; }
+  .px-tab-label { font-size: calc(20 * var(--px-rpx)); margin-top: calc(4 * var(--px-rpx)); color: #6d78a3; }
+
+  /* 小程序 <switch> 的像素化还原（设置页三个开关），点一下触发 change + detail.value */
+  switch { display: inline-block; position: relative; vertical-align: middle;
+           width: calc(84 * var(--px-rpx)); height: calc(46 * var(--px-rpx));
+           background: #2a3866; border: 3px solid #3c4f8f; cursor: pointer; }
+  switch::after { content: ''; position: absolute; top: 2px; left: 2px;
+                  width: calc(32 * var(--px-rpx)); height: calc(32 * var(--px-rpx)); background: #e8ecff; }
+  switch[checked] { background: #ff8a1f; border-color: #c85f0a; }
+  switch[checked]::after { left: calc(40 * var(--px-rpx)); background: #0d1530; }
+
+  /* toast */
+  #px-toast {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(7, 12, 28, 0.92); border: 3px solid #3c4f8f; color: #e8ecff;
+    padding: calc(20 * var(--px-rpx)) calc(26 * var(--px-rpx));
+    font-size: calc(24 * var(--px-rpx)); max-width: 70vw; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.12s steps(2, end); z-index: 200;
+    line-height: 1.5;
+  }
+  #px-toast.px-toast--show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #px-toast.px-toast--ok { border-color: #43d67a; }
+
+  /* modal */
+  .px-modal-mask {
+    position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.66);
+    display: flex; align-items: center; justify-content: center; z-index: 210;
+  }
+  .px-modal {
+    width: min(76vw, 360px); background: #131d3d; border: 4px solid #3c4f8f;
+    box-shadow: 0 0 0 4px #070c1c, 0 6px 0 0 rgba(0, 0, 0, 0.45);
+    padding: calc(24 * var(--px-rpx));
+  }
+  .px-modal__title { font-size: calc(26 * var(--px-rpx)); color: #ffd23f; margin-bottom: calc(14 * var(--px-rpx)); }
+  .px-modal__body { font-size: calc(24 * var(--px-rpx)); color: #e8ecff; line-height: 1.5; margin-bottom: calc(20 * var(--px-rpx)); }
+  .px-modal__input {
+    width: 100%; box-sizing: border-box; background: #0d1530; border: 3px solid #3c4f8f; color: #e8ecff;
+    font-family: inherit; font-size: calc(24 * var(--px-rpx)); padding: calc(10 * var(--px-rpx));
+    margin-bottom: calc(20 * var(--px-rpx)); outline: none;
+  }
+  .px-modal__foot { display: flex; gap: calc(14 * var(--px-rpx)); }
+  .px-modal__btn {
+    flex: 1; text-align: center; padding: calc(14 * var(--px-rpx)) 0;
+    font-size: calc(24 * var(--px-rpx)); border: 3px solid #3c4f8f; background: #1b2854; color: #e8ecff; cursor: pointer;
+  }
+  .px-modal__btn--ok { background: #ff8a1f; border-color: #c85f0a; color: #0d1530; }
+
+  #px-loading { position: fixed; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center;
+                justify-content: center; background: #070c1c; color: #ffd23f; font-size: 14px; z-index: 300; }
+  #px-error { position: fixed; left: 8px; right: 8px; bottom: 8px; background: #2a0d12; border: 2px solid #ff4d5e;
+              color: #ffb3bb; font-size: 12px; padding: 8px; white-space: pre-wrap; z-index: 400; display: none; }
+</style>
+</head>
+<body>
+<div id="px-nav"><div class="px-nav__back">&#8249;</div><div class="px-nav__title"></div></div>
+<div id="px-root"></div>
+<div id="px-tabbar"></div>
+<div id="px-toast"></div>
+<div id="px-loading">LOADING...</div>
+<div id="px-error"></div>
+
+<script src="bundle.js"></script>
+<script src="runtime/loader.js"></script>
+<script src="runtime/wxss.js"></script>
+<script src="runtime/wxml.js"></script>
+<script src="runtime/app-runtime.js"></script>
+<script src="runtime/wx-api.js"></script>
+<script>
+  (function () {
+    var box = document.getElementById('px-error');
+    function show(msg) {
+      box.style.display = 'block';
+      box.textContent = String(msg).slice(0, 600);
+    }
+    window.addEventListener('error', function (e) { show('ERROR: ' + (e.message || e.error)); });
+    window.addEventListener('unhandledrejection', function (e) { show('REJECT: ' + e.reason); });
+    try {
+      window.PxBoot.start();
+    } catch (e) {
+      show('BOOT FAIL: ' + (e && e.stack ? e.stack : e));
+    }
+  })();
+</script>
+</body>
+</html>
