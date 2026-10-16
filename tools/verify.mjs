@@ -22,6 +22,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
@@ -575,6 +576,60 @@ check('所有立绘 PNG 存在（config.art.portraitEnabled=true 时不得破图
   return true;
 });
 
+/* PNG 结构体检：签名 / 每个 chunk 的 CRC / IDAT 必须是 zlib 流（RFC1950）且解压长度自洽。
+ * 教训：IDAT 被写成 raw deflate 时，Node 的 inflateRaw 兜底能读、桌面 Chrome 也宽容，
+ * 但 Android WebView(Skia) 只从 IHDR 报出 naturalWidth，像素全画不出来 —— 整屏空框且不报错。 */
+const crc32Of = typeof zlib.crc32 === 'function'
+  ? (buf) => zlib.crc32(buf) >>> 0
+  : (() => {
+    const t = new Int32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c; }
+    return (buf) => { let c = -1; for (let i = 0; i < buf.length; i++) c = t[(c ^ buf[i]) & 255] ^ (c >>> 8); return (c ^ -1) >>> 0; };
+  })();
+
+function pngProblem(file) {
+  const b = fs.readFileSync(file);
+  if (b.length < 8 || b.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') return '签名不是 PNG';
+  let o = 8; let w = 0; let h = 0; let bd = 0; let ct = 0;
+  const idat = [];
+  while (o + 12 <= b.length) {
+    const len = b.readUInt32BE(o);
+    const type = b.toString('ascii', o + 4, o + 8);
+    const body = b.subarray(o + 8, o + 8 + len);
+    if (b.readUInt32BE(o + 8 + len) !== crc32Of(Buffer.concat([Buffer.from(type, 'ascii'), body]))) return type + ' CRC 不匹配';
+    if (type === 'IHDR') { w = b.readUInt32BE(o + 8); h = b.readUInt32BE(o + 12); bd = b[o + 16]; ct = b[o + 17]; }
+    if (type === 'IDAT') idat.push(body);
+    if (type === 'IEND') break;
+    o += 12 + len;
+  }
+  const ch = ct === 6 ? 4 : ct === 2 ? 3 : (ct === 0 || ct === 3) ? 1 : 0;
+  if (bd !== 8 || ch === 0) return 'bitDepth=' + bd + ' colorType=' + ct + ' 不受支持';
+  const stream = Buffer.concat(idat);
+  if (stream.length < 2 || (stream[0] & 0x0f) !== 8 || (((stream[0] << 8) | stream[1]) % 31) !== 0) {
+    return 'IDAT 不是 zlib 流（头 ' + stream.subarray(0, 2).toString('hex') + '，raw deflate 会被 WebView 判空）';
+  }
+  let raw;
+  try { raw = zlib.inflateSync(stream); } catch (e) { return 'IDAT 解压失败: ' + e.message; }
+  if (raw.length !== h * (w * ch + 1)) return '解压长度 ' + raw.length + ' != ' + (h * (w * ch + 1));
+  return null;
+}
+
+check('所有 PNG 素材结构合法（IDAT 必须是 zlib 流，不得 raw deflate）', () => {
+  const files = [];
+  const walkPng = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walkPng(f);
+      else if (/\.png$/i.test(e.name)) files.push(f);
+    }
+  };
+  walkPng(path.join(ROOT, 'assets'));
+  assert(files.length > 0, 'assets/ 下找不到 PNG');
+  const bad = [];
+  files.forEach((f) => { const why = pngProblem(f); if (why) bad.push(path.relative(ROOT, f) + ' -> ' + why); });
+  assert(bad.length === 0, bad.length + ' 张不合格: ' + bad.slice(0, 8).join(' | '));
+  return true;
+});
 check('运行时代码无外链 URL（第三章：不引用任何外部图片/数据源）', () => {
   const bad = [];
   const walk = (dir) => {
