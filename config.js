@@ -38,13 +38,23 @@ const CONFIG = {
     fontStack: '"Press Start 2P", "Zpix", "FZPXJW", "Courier New", monospace'
   },
 
-  // 全局 16 色调色板（第六章：单图 ≤32 色，建议 16–24 色，避免渐变）
+  // 全局调色板（第六章：单图 ≤32 色，避免渐变；热血街头风扩展：场景专用色只允许加在这里）
   palette: {
     navy900: '#070c1c', navy800: '#0d1530', navy700: '#131d3d', navy600: '#1b2854',
     navy500: '#26366b', line: '#3c4f8f', lineSoft: '#2a3a6b',
     text: '#e8ecff', textDim: '#97a2cc', textMute: '#6d78a3',
-    orange: '#ff8a1f', orangeDark: '#c85f0a', gold: '#ffd23f',
-    court: '#c98a4b', courtDark: '#a2682f',
+    orange: '#ff7a1a', orangeDark: '#c85f0a', gold: '#ffd23f',
+    // 街头球场：暖棕水泥地 + 米色标线（美术定调见 outputs/.../nekketsu-ref/court-bg.png）
+    court: '#c47f43', courtDark: '#90562a', courtLine: '#f7e9bd',
+    patch: '#7d8a45', crack: '#5f3a1c',
+    rim: '#ff5a2d', board: '#ece8d8', boardLine: '#e0463e',
+    steel: '#2f6f9f', steelDark: '#1d4d73', chain: '#d7dde4', chainDark: '#8d97a3',
+    fence: '#6a7484', wall: '#7a5238', wallDark: '#5a3a28',
+    graffPink: '#ff3f8e', graffGreen: '#74d63f', graffCyan: '#37d6d6', graffPurple: '#a653d6',
+    // 黄昏天色带（硬边色带，禁用渐变）
+    sky1: '#241a4e', sky2: '#5a235e', sky3: '#b8344e', sky4: '#ef6a3a', sky5: '#ffb347',
+    // 像素篮球专用橙（P.gold 是记分/特效色，球身不再用金色）
+    ball: '#ff7a1a', ballDark: '#c25207', ballSeam: '#3a1d07',
     hp: '#43d67a', danger: '#ff4d5e',
     rarity: { N: '#9aa4b8', R: '#4aa3ff', SR: '#b06bff', SSR: '#ffc53d', UR: '#ff4fd8' }
   },

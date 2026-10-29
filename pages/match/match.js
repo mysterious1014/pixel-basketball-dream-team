@@ -320,224 +320,370 @@ Page(store.connectPage(function (state) {
       });
   },
 
-  /* ================= 里程碑 6：像素球场 + 5v5 球员动画（自包含渲染块） =================
+  /* ========== 里程碑 6：热血街头球场 + 5v5 Q 版大头球员动画（自包含渲染块，参考热血篮球画风） ==========
    * 本块只读 this.__ctx / this.__cw / this.__ch / this.data + 常量 P / SPEEDS / ANIM_MS / ANIM_FRAMES，
    * 其余全走参数，便于离线预览（work/px6 的预览页直接抽取本块在浏览器里渲染）。
    * 规范：整数坐标、无渐变、限色（第六章）；演出不消耗任何随机数（可复现红线）。
    * ------------------------------------------------------------------------------ */
 
-  /* 球场几何：真实半场比例 → 画布坐标（纯函数） */
+  /* 球场几何：热血街头风高角度平视（黄昏天色带 + 涂鸦墙围栏 + 水泥地双篮架；纯函数） */
   courtGeom(W, H) {
-    const m = Math.max(6, Math.round(Math.min(W, H) * 0.042));
-    const x0 = m, y0 = m, x1 = W - m, y1 = H - m;
-    const w = x1 - x0, h = y1 - y0;
+    const m = Math.max(4, Math.round(Math.min(W, H) * 0.03));
+    const skyH = Math.round(H * 0.17);
+    const wallH = Math.round(H * 0.14);
+    const groundY = skyH + wallH;
+    const x0 = m, x1 = W - m;
+    const w = x1 - x0;
+    const y0 = groundY + Math.max(2, Math.round(H * 0.02));
+    const y1 = H - m;
+    const h = y1 - y0;
     return {
       m: m, x0: x0, y0: y0, x1: x1, y1: y1, w: w, h: h,
+      skyH: skyH, wallH: wallH, groundY: groundY,
       cx: Math.round((x0 + x1) / 2), cy: Math.round((y0 + y1) / 2),
-      line: Math.max(1, Math.round(Math.min(W, H) / 170)),
-      hoopIn: Math.max(4, Math.round(w * 0.052)),
-      keyLen: Math.max(16, Math.round(w * 0.21)),
-      keyHalf: Math.max(10, Math.round(h * 0.17)),
-      ftR: Math.max(5, Math.round(h * 0.115)),
-      midR: Math.max(6, Math.round(h * 0.115)),
-      arcR: Math.max(12, Math.round(h * 0.44)),
-      cornerIn: Math.max(3, Math.round(h * 0.075)),
-      boardH: Math.max(5, Math.round(h * 0.035))
+      line: Math.max(1, Math.round(Math.min(W, H) / 140)),
+      hoopIn: Math.max(5, Math.round(w * 0.07)),
+      keyLen: Math.max(12, Math.round(w * 0.14)),
+      keyHalf: Math.max(7, Math.round(h * 0.27)),
+      ftR: Math.max(4, Math.round(h * 0.16)),
+      midR: Math.max(5, Math.round(h * 0.19)),
+      arcR: Math.max(10, Math.round(h * 0.58)),
+      cornerIn: Math.max(2, Math.round(h * 0.11)),
+      boardW: Math.max(5, Math.round(H * 0.016)),
+      boardH: Math.max(8, Math.round(H * 0.085)),
+      rimY: Math.round(y0 + h * 0.15)
     };
   },
 
-  /* 静态球场：地板 + 白线 + 篮架（返回几何对象，动态层复用） */
-  paintCourt() {
+  /* 静态场景：天色带 / 楼群 / 涂鸦墙 / 铁丝网 / 水泥地 / 标线 / 街球架。opts.swing=篮网被砸弯的方向 */
+  paintCourt(o) {
     const ctx = this.__ctx;
     if (!ctx) return null;
     const g = this.courtGeom(this.__cw, this.__ch);
-    const L = '#f2e4c8';
-    /* 地板：竖向木板条（两色交替），再叠一层棋盘压暗让白线跳出来 */
-    ctx.fillStyle = P.court;
-    ctx.fillRect(0, 0, this.__cw, this.__ch);
-    ctx.fillStyle = P.courtDark;
-    const plank = Math.max(5, Math.round(this.__cw / 26));
-    for (let px = 0; px < this.__cw; px += plank * 2) ctx.fillRect(px, 0, plank, this.__ch);
-    ctx.fillStyle = 'rgba(7,12,28,0.10)';
-    for (let py = 0; py < this.__ch; py += 2) {
-      for (let px = ((py / 2) % 2) * 2; px < this.__cw; px += 4) ctx.fillRect(px, py, 2, 1);
+    const W = this.__cw, H = this.__ch, R = Math.round;
+    const swing = o && o.swing ? o.swing : 0;
+
+    /* 天色带（硬边色带，不用渐变） */
+    const bands = [P.sky1, P.sky2, P.sky3, P.sky4, P.sky5];
+    for (let b = 0; b < 5; b++) {
+      const ya = Math.round(g.skyH * b / 5), yb = Math.round(g.skyH * (b + 1) / 5);
+      ctx.fillStyle = bands[b];
+      ctx.fillRect(0, ya, W, yb - ya + 1);
     }
-    ctx.strokeStyle = L;
-    ctx.fillStyle = L;
-    ctx.lineWidth = g.line;
-    /* 边线 + 中线 + 中圈 */
-    ctx.strokeRect(g.x0 + 0.5, g.y0 + 0.5, g.w - 1, g.h - 1);
-    ctx.beginPath();
-    ctx.moveTo(g.cx + 0.5, g.y0);
-    ctx.lineTo(g.cx + 0.5, g.y1);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(g.cx, g.cy, g.midR, 0, Math.PI * 2);
-    ctx.stroke();
-    /* 左右两套：禁区 + 罚球圈 + 限制区弧 + 三分（底角线 + 大弧） + 篮板/篮筐/球网 */
+    /* 楼群剪影 + 窗灯（确定性点阵，绝不掷骰） */
+    let bx = -8;
+    let bi = 0;
+    while (bx < W) {
+      const bw = 10 + ((bi * 7 + 3) % 9);
+      const bh = Math.round(g.skyH * (0.45 + ((bi * 13) % 6) / 10));
+      ctx.fillStyle = P.navy900;
+      ctx.fillRect(bx, g.groundY - bh, bw, bh);
+      ctx.fillStyle = P.gold;
+      for (let wy = g.groundY - bh + 2; wy < g.groundY - 2; wy += 4) {
+        for (let wx = bx + 2; wx < bx + bw - 2; wx += 4) {
+          if (((wx * 7 + wy * 3 + bi) % 5) === 0) ctx.fillRect(wx, wy, 1, 1);
+        }
+      }
+      bx += bw; bi++;
+    }
+    /* 涂鸦砖墙 */
+    ctx.fillStyle = P.wall;
+    ctx.fillRect(0, g.skyH, W, g.wallH + 1);
+    ctx.fillStyle = P.wallDark;
+    for (let y = g.skyH; y <= g.groundY; y += 4) ctx.fillRect(0, y, W, 1);
+    const GRAFFS = [P.graffPink, P.graffGreen, P.graffCyan, P.graffPurple, P.gold];
+    for (let i = 0; i < 10; i++) {
+      const gx = R(((i * 83 + 11) % 100) / 100 * W);
+      const gy = g.skyH + 3 + ((i * 13 + 5) % Math.max(2, g.wallH - 10));
+      const gw = 5 + (i % 3) * 2;
+      ctx.fillStyle = P.wallDark;
+      ctx.fillRect(gx - 1, gy - 1, gw + 2, 5);
+      ctx.fillStyle = GRAFFS[i % GRAFFS.length];
+      ctx.fillRect(gx, gy, gw, 3);
+      ctx.fillStyle = GRAFFS[(i + 2) % GRAFFS.length];
+      ctx.fillRect(gx + 1, gy + 3, gw - 2, 1);
+    }
+    /* 铁丝网围栏 */
+    ctx.fillStyle = P.fence;
+    for (let x = 0; x < W; x += 22) ctx.fillRect(x, g.skyH + 1, 2, g.wallH);
+    for (let y = g.skyH + 2; y < g.groundY - 1; y += 4) {
+      const off = (Math.round((y - g.skyH) / 4) % 2) ? 6 : 0;
+      for (let x = off; x < W; x += 12) {
+        ctx.fillRect(x, y, 2, 1);
+        ctx.fillRect(x + 5, y + 2, 2, 1);
+      }
+    }
+    /* 水泥地 + 裂纹 / 补漆（确定性） */
+    ctx.fillStyle = P.court;
+    ctx.fillRect(0, g.groundY, W, H - g.groundY);
+    ctx.fillStyle = P.crack;
+    for (let i = 0; i < 26; i++) {
+      const cx = R(((i * 61) % 100) / 100 * W);
+      const cy = g.groundY + 4 + ((i * 29) % Math.max(8, H - g.groundY - 6));
+      ctx.fillRect(cx, cy, 2 + (i % 3), 1);
+    }
+    ctx.fillStyle = P.patch;
+    [[0.12, 0.86], [0.7, 0.7], [0.88, 0.9], [0.4, 0.92]].forEach(([rx, ry]) => {
+      ctx.fillRect(R(W * rx), R(g.groundY + (H - g.groundY) * ry), 7, 2);
+    });
+
+    /* 标线：深色描底 + 米色面（街机粗线感） */
+    const boxLine = (x, y, w, h) => {
+      ctx.beginPath(); ctx.rect(x + 0.5, y + 0.5, w - 1, h - 1);
+      ctx.lineWidth = g.line + 1; ctx.strokeStyle = P.courtDark; ctx.stroke();
+      ctx.beginPath(); ctx.rect(x + 0.5, y + 0.5, w - 1, h - 1);
+      ctx.lineWidth = g.line; ctx.strokeStyle = P.courtLine; ctx.stroke();
+    };
+    const arcLine = (cx, cy, r, a0, a1, ccw) => {
+      ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1, !!ccw);
+      ctx.lineWidth = g.line + 1; ctx.strokeStyle = P.courtDark; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1, !!ccw);
+      ctx.lineWidth = g.line; ctx.strokeStyle = P.courtLine; ctx.stroke();
+    };
+    const segLine = (x0, y0, x1, y1) => {
+      ctx.beginPath(); ctx.moveTo(x0 + 0.5, y0 + 0.5); ctx.lineTo(x1 + 0.5, y1 + 0.5);
+      ctx.lineWidth = g.line + 1; ctx.strokeStyle = P.courtDark; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x0 + 0.5, y0 + 0.5); ctx.lineTo(x1 + 0.5, y1 + 0.5);
+      ctx.lineWidth = g.line; ctx.strokeStyle = P.courtLine; ctx.stroke();
+    };
+    boxLine(g.x0, g.y0, g.w, g.h);
+    segLine(g.cx, g.y0, g.cx, g.y1);
+    arcLine(g.cx, g.cy, g.midR, 0, Math.PI * 2);
     const self = this;
     [1, -1].forEach(function (dir) {
       const hoopX = dir > 0 ? g.x0 + g.hoopIn : g.x1 - g.hoopIn;
       const keyOutX = dir > 0 ? g.x0 + g.keyLen : g.x1 - g.keyLen;
-      ctx.strokeRect(Math.min(keyOutX, keyOutX) + 0.5, g.cy - g.keyHalf + 0.5, g.keyLen - 1, g.keyHalf * 2 - 1);
-      ctx.beginPath();
-      ctx.arc(keyOutX, g.cy, g.ftR, 0, Math.PI * 2);
-      ctx.stroke();
-      /* 限制区半圆（面向场地中心） */
+      boxLine(Math.min(keyOutX, hoopX), g.cy - g.keyHalf, Math.abs(hoopX - keyOutX), g.keyHalf * 2);
+      arcLine(keyOutX, g.cy, g.ftR, 0, Math.PI * 2);
       const ra = Math.max(4, Math.round(g.h * 0.085));
-      ctx.beginPath();
-      if (dir > 0) ctx.arc(hoopX, g.cy, ra, -Math.PI / 2, Math.PI / 2);
-      else ctx.arc(hoopX, g.cy, ra, Math.PI / 2, Math.PI * 1.5);
-      ctx.stroke();
-      /* 三分：底角直线 + 与底角线相交的大弧 */
+      if (dir > 0) arcLine(hoopX, g.cy, ra, -Math.PI / 2, Math.PI / 2);
+      else arcLine(hoopX, g.cy, ra, Math.PI / 2, Math.PI * 1.5);
       const dyHalf = Math.round(g.h / 2) - g.cornerIn;
       const dxArc = Math.round(Math.sqrt(Math.max(1, g.arcR * g.arcR - dyHalf * dyHalf)));
       const yTop = g.y0 + g.cornerIn, yBot = g.y1 - g.cornerIn;
       const baseX = dir > 0 ? g.x0 : g.x1;
-      ctx.beginPath();
-      ctx.moveTo(baseX, yTop + 0.5);
-      ctx.lineTo(hoopX + dir * dxArc, yTop + 0.5);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(baseX, yBot - 0.5);
-      ctx.lineTo(hoopX + dir * dxArc, yBot - 0.5);
-      ctx.stroke();
+      segLine(baseX, yTop, hoopX + dir * dxArc, yTop);
+      segLine(baseX, yBot, hoopX + dir * dxArc, yBot);
       const a = Math.atan2(dyHalf, dxArc);
-      ctx.beginPath();
-      if (dir > 0) ctx.arc(hoopX, g.cy, g.arcR, -a, a, false);
-      else ctx.arc(hoopX, g.cy, g.arcR, a - Math.PI, Math.PI - a, true);
-      ctx.stroke();
-      /* 篮板（竖线） + 篮筐（橙块） + 球网（抖动像素） */
-      const bx = dir > 0 ? g.x0 + g.line + 1 : g.x1 - g.line - 1;
-      ctx.fillStyle = L;
-      ctx.fillRect(bx, g.cy - g.boardH, Math.max(1, g.line), g.boardH * 2);
-      ctx.fillStyle = P.orange;
-      const rimW = Math.max(3, Math.round(g.w * 0.014));
-      ctx.fillRect(dir > 0 ? bx + 2 : bx - 1 - rimW, g.cy - 1, rimW, 3);
-      ctx.fillStyle = P.textDim;
-      const netX = dir > 0 ? bx + 2 : bx - 1 - rimW;
-      for (let ny = 0; ny < 3; ny++) {
-        for (let nx = 0; nx < rimW; nx++) {
-          if ((nx + ny) % 2 === 0) ctx.fillRect(netX + nx, g.cy + 2 + ny, 1, 1);
-        }
-      }
-      ctx.fillStyle = L;
+      if (dir > 0) arcLine(hoopX, g.cy, g.arcR, -a, a, false);
+      else arcLine(hoopX, g.cy, g.arcR, a - Math.PI, Math.PI - a, true);
+
+      /* 街球架：钢立柱 + 支架臂 + 白板（红框）+ 橙圈 + 铁链网 */
+      const poleX = dir > 0 ? g.x0 + 1 : g.x1 - 3;
+      ctx.fillStyle = P.steelDark;
+      ctx.fillRect(poleX, g.rimY - g.boardH, 3, H - (g.rimY - g.boardH));
+      ctx.fillStyle = P.steel;
+      if (dir > 0) ctx.fillRect(poleX + 3, g.rimY - g.boardH + 2, Math.max(2, hoopX - poleX - g.boardW - 3), 2);
+      else ctx.fillRect(hoopX + g.boardW + 1, g.rimY - g.boardH + 2, Math.max(2, poleX - hoopX - g.boardW - 1), 2);
+      const bx = dir > 0 ? hoopX - g.boardW - 1 : hoopX + 2;
+      ctx.fillStyle = P.board;
+      ctx.fillRect(bx, g.rimY - g.boardH, g.boardW, g.boardH * 2);
+      ctx.strokeStyle = P.steelDark; ctx.lineWidth = 1;
+      ctx.strokeRect(bx + 0.5, g.rimY - g.boardH + 0.5, g.boardW - 1, g.boardH * 2 - 1);
+      ctx.fillStyle = P.boardLine;
+      ctx.fillRect(bx, g.rimY - 3, g.boardW, 3);
+      const rimW = Math.max(5, Math.round(g.w * 0.022));
+      const rimX = dir > 0 ? hoopX : hoopX - rimW;
+      ctx.fillStyle = P.rim;
+      ctx.fillRect(rimX, g.rimY, rimW, 3);
+      self.__drawNet(rimX, g.rimY + 3, rimW, 7, swing);
     });
     return g;
+  },
+
+  /* 铁链篮网（横向链丝逐行收口；swing≠0 时下沿被砸歪） */
+  __drawNet(x, y, w, h, swing) {
+    const ctx = this.__ctx;
+    for (let r = 0; r < h; r++) {
+      const inset = Math.min(3, Math.round(r * 0.55));
+      const xx = x + (r >= h - 2 ? swing : 0);
+      ctx.fillStyle = (r % 2) ? P.chainDark : P.chain;
+      ctx.fillRect(xx + inset, y + r, Math.max(2, w - inset * 2), 1);
+      ctx.fillStyle = P.chainDark;
+      ctx.fillRect(xx + inset, y + r, 1, 1);
+      ctx.fillRect(xx + w - inset - 1, y + r, 1, 1);
+    }
   },
 
   /* 迷你像素小人尺度：u 像素 = 1 个「设计像素」 */
   __unit() { return Math.max(3, Math.min(5, Math.round(this.__ch / 72))); },
 
-  /* 画一个像素小人：x,y = 脚底中心；dir = 朝向（1 面向右）；pose = stand/run/jump/contest；lift = 起跳抬升 */
+  /* Q 版热血小人：x,y=脚底中心；dir 朝向；pose=stand/run/run2/jump/contest；lift=起跳抬升 */
   drawMan(x, y, dir, kit, pose, lift, scale) {
     const ctx = this.__ctx;
     if (!ctx) return;
     const u = (scale || this.__unit());
     const R = Math.round;
     const bx = R(x), by = R(y - (lift || 0));
-    const legH = (pose === 'jump' || pose === 'contest') ? 2 : 3;
-    /* 腿（跑动帧一前一后） */
-    ctx.fillStyle = kit.legs;
+    const OUT = '#0a0a12';
+    const box = (dx, dy, w, h, c) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(bx + R(dx * u), by + R(dy * u), Math.max(1, R(w * u)), Math.max(1, R(h * u)));
+    };
+    const SK = kit.skin, HR = kit.hair, JD = '#0a0a12';
+
+    /* 腿 + 鞋（街球短裤、露小腿） */
     if (pose === 'run') {
-      ctx.fillRect(R(bx - u * 1.3), by - u * legH, u, u * legH);
-      ctx.fillRect(R(bx + u * 0.3), by - u * legH, u, u * legH - u);
+      box(dir * 0.3, -2.0, 0.8, 2.0, SK); box(dir * 0.2, -0.5, 1.3, 0.5, kit.shoe);
+      box(-dir * 1.3, -1.5, 0.8, 1.3, SK); box(-dir * 1.4, -0.6, 1.2, 0.5, kit.shoe);
+    } else if (pose === 'run2') {
+      box(-dir * 0.2, -2.0, 0.8, 2.0, SK); box(-dir * 0.3, -0.5, 1.3, 0.5, kit.shoe);
+      box(dir * 0.9, -1.6, 0.8, 1.4, SK); box(dir * 0.8, -0.6, 1.2, 0.5, kit.shoe);
+    } else if (pose === 'jump' || pose === 'contest') {
+      box(-1.1, -1.5, 0.8, 1.3, SK); box(-1.2, -0.5, 1.2, 0.5, kit.shoe);
+      box(0.3, -1.3, 0.8, 1.1, SK); box(0.3, -0.5, 1.2, 0.5, kit.shoe);
     } else {
-      ctx.fillRect(R(bx - u * 1.2), by - u * legH, u, u * legH);
-      ctx.fillRect(R(bx + u * 0.2), by - u * legH, u, u * legH);
+      box(-1.1, -2.2, 0.8, 2.2, SK); box(-1.3, -0.5, 1.3, 0.5, kit.shoe);
+      box(0.3, -2.2, 0.8, 2.2, SK); box(0.1, -0.5, 1.3, 0.5, kit.shoe);
     }
-    /* 躯干（球衣） */
-    const jy = by - u * (legH + 4);
-    ctx.fillStyle = kit.jer;
-    ctx.fillRect(R(bx - u * 1.5), jy, u * 3, u * 4);
-    ctx.fillStyle = kit.trim;
-    ctx.fillRect(R(bx - u * 1.5), jy + u * 3, u * 3, u);          // 下摆
-    ctx.fillRect(R(bx - u * 1.5), jy, u, u);                      // 左肩滚边
-    ctx.fillRect(R(bx + u * 0.5), jy, u, u);                      // 右肩滚边
+    /* 躯干（描边 → 球衣 → 短裤 → 滚边） */
+    box(-1.7, -5.8, 3.4, 3.1, OUT);
+    box(-1.6, -5.7, 3.2, 2.9, kit.jer);
+    box(-1.7, -4.1, 3.4, 1.2, OUT);
+    box(-1.6, -4.0, 3.2, 1.0, kit.shorts);
+    box(-1.6, -4.0, 3.2, 0.3, kit.trim);
+    box(-1.6, -5.4, 0.3, 1.4, kit.trim);
+    box(1.3, -5.4, 0.3, 1.4, kit.trim);
     /* 手臂 */
-    ctx.fillStyle = kit.skin;
-    if (pose === 'jump' || pose === 'contest') {
-      ctx.fillRect(R(bx - u * 0.9), jy - u * 2.2, u * 0.8, u * 2.4);   // 双臂举起
-      ctx.fillRect(R(bx + u * 0.1), jy - u * 2.2, u * 0.8, u * 2.4);
-    } else if (pose === 'run') {
-      ctx.fillRect(R(bx + dir * u * 0.9), jy + u * 0.4, u * 0.8, u * 2.2); // 前后摆臂
-      ctx.fillRect(R(bx - dir * u * 1.7), jy + u * 0.8, u * 0.8, u * 1.8);
+    if (pose === 'jump') {
+      box(-1.2, -7.4, 0.8, 2.0, SK); box(0.4, -7.4, 0.8, 2.0, SK);
+      box(-1.3, -7.5, 1.0, 0.3, SK); box(0.3, -7.5, 1.0, 0.3, SK);
+    } else if (pose === 'contest') {
+      box(-1.9, -6.9, 0.8, 1.8, SK); box(1.1, -6.9, 0.8, 1.8, SK);
+      box(-2.0, -7.0, 1.0, 0.3, SK); box(1.0, -7.0, 1.0, 0.3, SK);
+    } else if (pose === 'run' || pose === 'run2') {
+      const fwd = pose === 'run' ? 1 : -1;
+      box(dir * fwd * 0.7, -5.5, 1.0, 0.7, SK); box(dir * fwd * 1.3, -5.0, 0.7, 1.1, SK);
+      box(-dir * fwd * 1.5, -5.3, 0.7, 1.5, SK);
     } else {
-      ctx.fillRect(R(bx - u * 2.1), jy + u * 0.3, u * 0.7, u * 2.4);
-      ctx.fillRect(R(bx + u * 1.4), jy + u * 0.3, u * 0.7, u * 2.4);
+      box(-2.3, -5.4, 0.7, 2.0, SK); box(1.6, -5.4, 0.7, 2.0, SK);
     }
-    /* 头（皮肤 + 发型 + 眼睛） */
-    const hy = jy - u * 3.2;
-    ctx.fillStyle = kit.skin;
-    ctx.fillRect(R(bx - u), hy, u * 2, u * 2.6);
-    ctx.fillStyle = kit.hair;
-    ctx.fillRect(R(bx - u), hy - u * 0.8, u * 2, u * 1.1);
-    ctx.fillStyle = P.navy900;
-    ctx.fillRect(R(bx + dir * u * 0.2), hy + u * 0.9, Math.max(1, R(u * 0.45)), Math.max(1, R(u * 0.45)));
+    /* 大头（描边 → 脸 → 耳） */
+    box(-1.5, -8.6, 3.0, 2.8, OUT);
+    box(-1.4, -8.5, 2.8, 2.6, SK);
+    box(-1.4, -8.5, 0.6, 2.6, kit.skin);
+    box(-1.8, -7.4, 0.4, 0.7, SK); box(1.4, -7.4, 0.4, 0.7, SK);
+    /* 怒发 + 头带 */
+    box(-1.5, -8.6, 3.0, 0.7, HR);
+    box(dir * 0.1, -9.1, 0.9, 0.6, HR);
+    box(-dir * 0.8, -9.0, 0.7, 0.5, HR);
+    box(-1.5, -7.9, 3.0, 0.45, kit.band);
+    /* 怒眉（内低外高）+ 大眼（白框瞳孔 + 高光） */
+    box(-1.1, -7.5, 0.7, 0.2, JD);
+    box(-1.0 + dir * 0.1, -7.3, 0.7, 0.2, JD);
+    box(0.4, -7.3, 0.7, 0.2, JD);
+    box(0.3 + dir * 0.1, -7.5, 0.7, 0.2, JD);
+    box(dir * 0.1 - 0.35, -7.0, 0.75, 0.55, OUT);
+    box(dir * 0.1 - 0.25, -7.0, 0.55, 0.4, '#f6f7ff');
+    box(dir * 0.1 + (dir > 0 ? 0.05 : -0.2), -6.85, 0.22, 0.22, OUT);
+    /* 嘴：动作中张嘴呐喊，站立露齿坏笑 */
+    if (pose === 'stand') {
+      box(dir * 0.15 - 0.4, -6.3, 0.8, 0.18, JD);
+    } else {
+      box(dir * 0.1 - 0.4, -6.4, 0.8, 0.55, OUT);
+      box(dir * 0.1 - 0.3, -6.4, 0.6, 0.15, '#f6f7ff');
+      box(dir * 0.1 - 0.2, -6.05, 0.4, 0.12, '#c24a4a');
+    }
   },
 
-  /* 球（含 1px 接缝） */
+  /* 像素篮球（橙色圆盘 + 接缝 + 描边） */
   drawBall(x, y) {
     const ctx = this.__ctx;
     if (!ctx) return;
     const u = this.__unit();
-    const s = Math.max(3, Math.round(u * 1.1));
+    const s = Math.max(4, Math.round(u * 1.15));
     const bx = Math.round(x - s / 2), by = Math.round(y - s / 2);
-    ctx.fillStyle = P.gold;
-    ctx.fillRect(bx, by, s, s);
-    if (s >= 3) {
-      ctx.fillStyle = '#7a4a10';
-      ctx.fillRect(bx, by + Math.floor(s / 2), s, 1);
-      ctx.fillRect(bx + Math.floor(s / 2), by, 1, s);
+    const fracs = [0.5, 0.85, 1, 1, 0.85, 0.5];
+    const rows = fracs.length;
+    for (let r = 0; r < rows; r++) {
+      const w = Math.max(2, Math.round(s * fracs[r]));
+      const xx = bx + Math.round((s - w) / 2);
+      ctx.fillStyle = (r >= rows - 2) ? P.ballDark : P.ball;
+      ctx.fillRect(xx, by + r, w, 1);
     }
+    ctx.fillStyle = P.navy900;
+    ctx.fillRect(bx + Math.round(s * 0.25), by, 1, 1);
+    ctx.fillRect(bx + Math.round(s * 0.75), by, 1, 1);
+    ctx.fillRect(bx + Math.round(s * 0.25), by + rows - 1, 1, 1);
+    ctx.fillRect(bx + Math.round(s * 0.75), by + rows - 1, 1, 1);
+    ctx.fillStyle = P.ballSeam;
+    ctx.fillRect(bx + Math.floor(s / 2), by + 1, 1, rows - 2);
+    ctx.fillRect(bx + 1, by + Math.floor(rows / 2), s - 2, 1);
   },
 
-  /* 命中特写：放大版小人 + 姓名牌（milestone 6「场上球员动画特写」） */
+  /* 漫画爆点（十字星芒） */
+  __burst(x, y, r, c) {
+    const ctx = this.__ctx;
+    const R = Math.round;
+    ctx.fillStyle = c;
+    ctx.fillRect(R(x - r), R(y), r * 2 + 1, 1);
+    ctx.fillRect(R(x), R(y - r), 1, r * 2 + 1);
+    for (let i = 1; i <= r; i++) {
+      ctx.fillRect(R(x - i), R(y - i), 1, 1);
+      ctx.fillRect(R(x + i), R(y - i), 1, 1);
+      ctx.fillRect(R(x - i), R(y + i), 1, 1);
+      ctx.fillRect(R(x + i), R(y + i), 1, 1);
+    }
+    ctx.fillStyle = '#fff6d8';
+    ctx.fillRect(R(x), R(y), 2, 2);
+  },
+
+  /* 带深色投影的像素字 */
+  __pxText(str, x, y, size, c) {
+    const ctx = this.__ctx;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold ' + size + 'px monospace';
+    ctx.fillStyle = P.navy900;
+    ctx.fillText(str, x + 1, y + 1);
+    ctx.fillStyle = c;
+    ctx.fillText(str, x, y);
+  },
+
+  /* 命中特写：放大版 Q 版小人 + 姓名牌 */
   drawCloseUp(pane, kit, pose, name, label) {
     const ctx = this.__ctx;
     if (!ctx || !pane) return;
-    const R = Math.round;
-    const s = Math.max(4, Math.round(pane.h / 18));
-    ctx.fillStyle = 'rgba(7,12,28,0.88)';
+    ctx.fillStyle = 'rgba(7,12,28,0.9)';
     ctx.fillRect(pane.x, pane.y, pane.w, pane.h);
-    ctx.strokeStyle = P.line;
+    ctx.strokeStyle = P.orange;
     ctx.lineWidth = Math.max(1, this.courtGeom(this.__cw, this.__ch).line + 1);
     ctx.strokeRect(pane.x + 0.5, pane.y + 0.5, pane.w - 1, pane.h - 1);
+    this.__pxText(label, pane.x + pane.w / 2, pane.y + Math.round(pane.h * 0.15), Math.max(10, Math.round(pane.h * 0.15)), P.gold);
+    ctx.fillStyle = P.text;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = P.gold;
-    ctx.font = 'bold ' + Math.max(9, Math.round(pane.h * 0.14)) + 'px monospace';
-    ctx.fillText(label, pane.x + pane.w / 2, pane.y + Math.round(pane.h * 0.16));
-    ctx.fillStyle = P.text;
-    ctx.font = 'bold ' + Math.max(8, Math.round(pane.h * 0.12)) + 'px monospace';
-    ctx.fillText(String(name || '').slice(0, 6), pane.x + pane.w / 2, pane.y + pane.h - Math.round(pane.h * 0.12));
-    this.drawMan(pane.x + pane.w / 2, pane.y + pane.h - Math.round(pane.h * 0.24), 1, kit, pose, 0, s);
+    ctx.font = 'bold ' + Math.max(8, Math.round(pane.h * 0.11)) + 'px monospace';
+    ctx.fillText(String(name || '').slice(0, 6), pane.x + pane.w / 2, pane.y + pane.h - Math.round(pane.h * 0.11));
+    const s = Math.max(4, Math.round(pane.h / 13));
+    this.drawMan(pane.x + pane.w / 2, pane.y + pane.h - Math.round(pane.h * 0.22), 1, kit, pose, 0, s);
   },
 
-  /* 一帧完整场景：静态球场 + 10 名球员 + 球 + 特写/横幅。entry=null 或 f=null ⇒ 定格 */
+  /* 一帧完整场景：静态街头球场 + 十名大头球员 + 球 + 爆点/特写/横幅。entry=null/f=null ⇒ 定格 */
   renderScene(entry, f) {
     const ctx = this.__ctx;
     if (!ctx) return;
-    const g = this.paintCourt();
-    if (!g) return;
+    const g = this.courtGeom(this.__cw, this.__ch);
     const R = Math.round;
     const u = this.__unit();
-    const homeKit = { jer: P.orange, trim: P.navy900, legs: P.navy700, skin: '#e8b98a', hair: '#1b1b1f' };
-    const awayKit = { jer: '#dfe7ff', trim: '#2f5fa8', legs: '#2f3f6b', skin: '#a9714b', hair: '#2b2f45' };
-    const kits = { home: homeKit, away: awayKit };
-    const fixture = [-0.62, 0.62, -0.26, 0.34, 0.04];
-    const homeSpot = [0.09, 0.22, 0.35, 0.48, 0.60];
-    const awaySpot = [0.91, 0.78, 0.65, 0.52, 0.40];
-    const anchor = (side, i) => ({
-      x: g.x0 + g.w * (side === 'home' ? homeSpot[i] : awaySpot[i]),
-      y: g.cy + fixture[i] * (g.h / 2)
-    });
-    const fx = (v) => Math.round(v);                    // 位置量化到整像素（像素风）
+    const SKINS = ['#e8b98a', '#c98d57', '#8a5a32'];
+    const HAIRS = ['#17151c', '#4a2f18', '#d9b24a', '#c23b2e', '#7a5230'];
+    const kitOf = (side, i) => side === 'home'
+      ? { jer: P.orange, trim: '#fff3d6', shorts: P.navy700, skin: SKINS[i % 3], hair: HAIRS[(i * 2) % 5], band: '#ff3b2f', shoe: '#1d2233' }
+      : { jer: '#f2f4ff', trim: '#2f5fa8', shorts: '#2f5fa8', skin: SKINS[(i + 1) % 3], hair: HAIRS[(i * 2 + 3) % 5], band: '#2f5fa8', shoe: '#20243a' };
+
+    const xHome = [0.09, 0.23, 0.37, 0.51, 0.63];
+    const xAway = [0.91, 0.77, 0.63, 0.49, 0.37];
+    const lanesFrac = [0.52, 0.64, 0.76, 0.88, 0.99];
+    const laneScale = [0.78, 0.88, 0.98, 1.08, 1.18];
+
     const side = entry && (entry.side === 'home' || entry.side === 'away') ? entry.side : '';
     const isRound = !!side;
     const fnum = (f === null || f === undefined) ? 7 : f;
     const attackDir = side === 'home' ? 1 : -1;
     const hoopX = attackDir > 0 ? g.x1 - g.hoopIn : g.x0 + g.hoopIn;
+    const made = !!(entry && entry.made);
+    const blocked = !!(entry && entry.event === 'block');
     const hIdx = (str) => {
       let h = 0;
       const t = String(str || '');
@@ -546,98 +692,127 @@ Page(store.connectPage(function (state) {
     };
     const shooterIdx = isRound ? hIdx(entry.shooterUid || entry.shooter) : 0;
     const defIdx = isRound ? hIdx((entry.defenderUid || entry.defender) + 'd') : 0;
-    const made = !!(entry && entry.made);
-    const shootX = fx(hoopX - attackDir * g.arcR * 0.42);
-    const shootY = fx(g.cy + (fixture[shooterIdx] * g.h * 0.1));
+    const anchor = (s, i) => ({
+      x: g.x0 + g.w * (s === 'home' ? xHome[i] : xAway[i]),
+      y: g.y0 + lanesFrac[i] * g.h,
+      su: laneScale[i]
+    });
+    const shootX = R(hoopX - attackDir * g.arcR * 0.42);
     const runT = isRound ? Math.min(1, fnum / 3) : 0;
     const jumpT = (isRound && fnum >= 3 && fnum <= 6) ? (fnum === 3 ? 0.25 : (fnum === 4 ? 0.85 : (fnum === 5 ? 1 : 0.4))) : 0;
-    const lift = jumpT * u * 2.2;
-    /* 十名球员 */
-    for (const s of ['home', 'away']) {
-      const kit = kits[s];
-      const shift = isRound ? (s === side ? attackDir * g.w * 0.07 : -attackDir * g.w * 0.02) : 0;
-      for (let i = 0; i < 5; i++) {
+
+    /* 震屏（命中/盖帽 f4-f6，确定性位移） */
+    const SHAKE = [[1, -1], [-2, 1], [2, 1]];
+    let sh = [0, 0];
+    if (isRound && fnum >= 4 && fnum <= 6 && (made || blocked)) sh = SHAKE[fnum - 4];
+    ctx.save();
+    ctx.translate(sh[0], sh[1]);
+    const swing = (made && (fnum === 5 || fnum === 6)) ? (fnum === 5 ? -1 : 1) : 0;
+    this.paintCourt({ swing: swing });
+
+    /* 远 → 近 两列球员（影子先落地，起跳不带影子走） */
+    for (let i = 0; i < 5; i++) {
+      for (const s of ['home', 'away']) {
         const a = anchor(s, i);
-        let px = a.x + shift, py = a.y, pose = 'stand', lf = 0;
-        const moving = isRound && ((s === side) || (s !== side && i === defIdx));
+        let px = a.x, py = a.y, pose = 'stand', lf = 0;
+        const moving = isRound && (s === side || (s !== side && i === defIdx));
         if (isRound && s === side && i === shooterIdx) {
-          px = a.x + shift + (shootX - (a.x + shift)) * runT;
-          py = a.y + (shootY - a.y) * runT;
-          pose = fnum >= 3 && fnum <= 6 ? 'jump' : (fnum < 3 ? 'run' : 'stand');
-          lf = lift;
+          px = a.x + (shootX - a.x) * runT;
+          const landY = g.rimY + u * 7;
+          py = a.y - Math.max(0, a.y - landY) * jumpT;
+          pose = fnum >= 3 && fnum <= 6 ? 'jump' : (fnum < 3 ? (fnum % 2 ? 'run' : 'run2') : 'stand');
+          lf = 0;
         } else if (isRound && s !== side && i === defIdx) {
-          const dpos = anchor(side, shooterIdx);
-          px = a.x + (dpos.x + attackDir * u * 2.4 - a.x) * runT;
-          py = a.y + (dpos.y - a.y) * runT;
-          pose = fnum >= 4 && fnum <= 6 ? 'contest' : 'run';
-          lf = jumpT * u * 1.8;
+          const tgt = anchor(side, shooterIdx);
+          px = a.x + (tgt.x + attackDir * u * 2.2 - a.x) * runT;
+          py = a.y - (a.y - (tgt.y - u * 4)) * jumpT;
+          pose = fnum >= 4 && fnum <= 6 ? 'contest' : (fnum < 3 ? (fnum % 2 ? 'run2' : 'run') : 'stand');
         } else if (moving && fnum < 3) {
-          pose = 'run';
+          pose = fnum % 2 ? 'run' : 'run2';
         }
-        this.drawMan(px, py, s === 'home' ? 1 : -1, kit, pose, lf);
+        ctx.fillStyle = 'rgba(7,12,28,0.32)';
+        ctx.fillRect(R(a.x - 2.0 * a.su), R(a.y), R(4.2 * a.su), Math.max(1, Math.round(u * 0.35)));
+        this.drawMan(px, py, s === 'home' ? 1 : -1, kitOf(s, i), pose, lf, u * a.su);
       }
     }
+
     /* 球 */
     if (!isRound) {
-      this.drawBall(g.cx, g.cy + u);
+      const cx = g.cx, cy = R(g.y0 + g.h * 0.62);
+      ctx.fillStyle = 'rgba(7,12,28,0.32)';
+      ctx.fillRect(cx - 5, cy + 3, 10, 2);
+      this.drawBall(cx, cy);
     } else {
       const hand = anchor(side, shooterIdx);
-      const hx = hand.x + attackDir * g.w * 0.07 + (shootX - (hand.x + attackDir * g.w * 0.07)) * runT;
-      const hy = hand.y + (shootY - hand.y) * runT - u * 8 - lift;
-      const target = { x: hoopX - attackDir * 2, y: g.cy - u * 2 };
+      let hx = hand.x + (shootX - hand.x) * runT;
+      let hy = hand.y - Math.max(0, hand.y - (g.rimY + u * 7)) * jumpT;
+      const target = { x: hoopX - attackDir * 2, y: g.rimY + 1 };
       let bx = hx, by = hy;
-      if (fnum >= 3) {
+      if (fnum < 3) {
+        /* 运球推进：按帧上下拍（确定性，不掷骰） */
+        bx = hx;
+        by = hy - u * 1.6 + (fnum % 2 ? u : 0);
+      } else if (fnum === 3) {
+        bx = hx; by = hy - u * 4.6;
+      } else {
         const p = Math.min(1, (fnum - 3) / 2);
         bx = hx + (target.x - hx) * p;
-        by = hy + (target.y - hy) * p - Math.sin(p * Math.PI) * u * 3.2;
+        by = (hy - u * 4.6) + (target.y - (hy - u * 4.6)) * p - Math.sin(p * Math.PI) * u * 3.2;
       }
       if (fnum === 6) {
-        if (made) { bx = target.x; by = target.y; }
-        else { bx = hoopX + attackDir * -g.w * 0.10; by = g.cy + g.h * 0.10; }
+        if (made) { bx = target.x; by = target.y + 2; }
+        else { bx = hoopX + attackDir * -g.w * 0.10; by = g.rimY + g.h * 0.10; }
       } else if (fnum >= 7) {
-        if (made) { bx = target.x; by = target.y; }
-        else { bx = hoopX + attackDir * -g.w * 0.10; by = g.cy + g.h * 0.14; }
+        if (made) { bx = target.x; by = g.rimY + u * 1.8; }
+        else { bx = hoopX + attackDir * -g.w * 0.10; by = g.rimY + g.h * 0.16; }
+      }
+      if (fnum < 3) {
+        ctx.fillStyle = 'rgba(7,12,28,0.3)';
+        ctx.fillRect(R(bx - 3), R(hand.y + 1), 6, 2);
       }
       this.drawBall(bx, by);
-      /* 命中火花：篮筐四周 4 个像素点（f5-f7） */
+      /* 命中爆点 + 拟声字；盖帽 / 打铁给对应爆点 */
       if (made && fnum >= 5) {
-        ctx.fillStyle = P.gold;
-        ctx.fillRect(R(target.x - u), R(target.y - u), 1, 1);
-        ctx.fillRect(R(target.x + u), R(target.y - u), 1, 1);
-        ctx.fillRect(R(target.x - u), R(target.y + u), 1, 1);
-        ctx.fillRect(R(target.x + u), R(target.y + u), 1, 1);
+        const rr = fnum === 5 ? u : (fnum === 6 ? u * 1.7 : u);
+        this.__burst(target.x, target.y + 1, rr, P.gold);
+        this.__pxText('唰！', target.x - attackDir * u * 3.8, target.y - u * 1.8, Math.max(10, u * 3), P.gold);
+      } else if (blocked && fnum >= 4 && fnum <= 6) {
+        this.__burst(bx, by, u, P.danger);
+        this.__pxText('啪！', bx, by - u * 2.2, Math.max(10, u * 3), P.danger);
+      } else if (!made && fnum >= 6) {
+        this.__pxText('铛！', hoopX - attackDir * u * 2, g.rimY - u * 1.6, Math.max(9, u * 2.6), P.textDim);
       }
     }
-    /* 特写镜头（回合事件 f>=2；命中/盖帽/打铁均给特写） */
+    ctx.restore();
+
+    /* 特写镜头（不随震屏抖动，命中/盖帽/打铁/篮板） */
     if (isRound && fnum >= 2) {
       const pane = {
-        w: Math.round(g.w * 0.34), h: Math.round(g.h * 0.56),
-        x: hoopX > g.cx ? g.x0 + Math.round(g.line * 2) : g.x1 - Math.round(g.w * 0.34) - Math.round(g.line * 2),
+        w: Math.round(g.w * 0.30), h: Math.round(g.h * 0.52),
+        x: hoopX > g.cx ? g.x0 + Math.round(g.line * 2) : g.x1 - Math.round(g.w * 0.30) - Math.round(g.line * 2),
         y: g.y0 + Math.round(g.line * 2)
       };
       const blockish = entry.event === 'block';
-      const kit = kits[blockish ? (side === 'home' ? 'away' : 'home') : side];
+      const idx = blockish ? defIdx : shooterIdx;
+      const kit = kitOf(blockish ? (side === 'home' ? 'away' : 'home') : side, idx);
       const label = made ? ('+' + (entry.points || 2)) : (blockish ? '盖帽' : (entry.event === 'rebound' ? '篮板' : '打铁'));
-      const pose = made ? (jumpT > 0 ? 'jump' : 'contest') : (blockish ? 'contest' : 'jump');
+      const pose = made ? 'jump' : (blockish ? 'contest' : 'jump');
       const name = (blockish ? entry.defender : entry.shooter) || '';
       this.drawCloseUp(pane, kit, pose, name, label);
     }
-    /* 节间横幅（信息条：只显示节次，避免长句盖住球场） */
+
+    /* 节间横幅 */
     if (entry && entry.kind === 'info') {
       const text = entry.final ? '终场' : (entry.qLabel || '');
       if (text) {
         const bw = Math.round(g.w * 0.34), bh = Math.round(g.h * 0.16);
         const bx = g.cx - Math.round(bw / 2), by = g.cy - Math.round(bh / 2);
-        ctx.fillStyle = 'rgba(7,12,28,0.85)';
+        ctx.fillStyle = 'rgba(7,12,28,0.88)';
         ctx.fillRect(bx, by, bw, bh);
         ctx.strokeStyle = P.orange;
         ctx.lineWidth = g.line;
         ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-        ctx.fillStyle = P.gold;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold ' + Math.max(11, Math.round(bh * 0.44)) + 'px monospace';
-        ctx.fillText(text, g.cx, by + Math.round(bh / 2));
+        this.__pxText(text, g.cx, g.cy, Math.max(11, Math.round(bh * 0.44)), P.gold);
       }
     }
   },

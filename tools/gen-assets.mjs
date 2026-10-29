@@ -199,12 +199,21 @@ function drawPortrait(card) {
   const skin = SKIN_TONES[spec.s] || SKIN_TONES[1];
   const hairC = HAIR_COLORS[spec.hc] || HAIR_COLORS[0];
 
-  const BG1 = hexToRgba('#101a35');
-  const BG2 = hexToRgba('#16234a');
+  /* 热血街头风配色（与 config.palette 场景键同值） */
+  const SKY = ['#241a4e', '#5a235e', '#b8344e', '#ef6a3a', '#f0853a'].map(hexToRgba);
+  const CITY = hexToRgba('#131d3d');
+  const LIT = hexToRgba('#ffd23f');
+  const WALL = hexToRgba('#7a5238');
+  const WALLD = hexToRgba('#5a3a28');
+  const FENCE = hexToRgba('#454e5e');
+  const CLAY = hexToRgba('#c47f43');
+  const CLAYD = hexToRgba('#90562a');
+  const CRACK = hexToRgba('#5f3a1c');
+  const PATCH = hexToRgba('#7d8a45');
+  const GRAFF = ['#ff3f8e', '#74d63f', '#37d6d6', '#a653d6'].map(hexToRgba);
   const OUT = hexToRgba('#07080f');
   const JER = hexToRgba(jersey);
   const JER_D = shade(jersey, -42);
-  const JER_L = shade(jersey, 30);
   const TRIM = hexToRgba(trim);
   const SK_L = hexToRgba(skin.light);
   const SK_M = hexToRgba(skin.mid);
@@ -213,185 +222,230 @@ function drawPortrait(card) {
   const HCD = shade(hairC, -26);
   const NUM = hexToRgba('#f6f7ff');
   const LENS = hexToRgba('#8fd3e8');
+  const MOUTH = hexToRgba('#541b1b');
+  const TONGUE = hexToRgba('#c24a4a');
+  const CLEAR = [0, 0, 0, 0];
 
-  // 背景：像素抖动（dithering）过渡，不用渐变
-  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
-    const dither = ((x + y) % 2 === 0);
-    cv.set(x, y, y < 20 ? (dither ? BG2 : BG1) : (dither ? BG1 : BG2));
-  }
-
-  // 体型参数：头部 / 脖子 / 肩膀
-  const P = {
-    normal: { headY: 6, headW: 20, headH: 22, neck: 4, shStart: 32, shMax: 21, cx: 32 },
-    bulky: { headY: 6, headW: 22, headH: 21, neck: 4, shStart: 31, shMax: 24, cx: 32 },
-    tower: { headY: 4, headW: 19, headH: 21, neck: 9, shStart: 36, shMax: 18, cx: 32 },
-    slim: { headY: 6, headW: 19, headH: 22, neck: 6, shStart: 34, shMax: 17, cx: 32 }
-  }[spec.build] || { headY: 6, headW: 20, headH: 22, neck: 4, shStart: 32, shMax: 21, cx: 32 };
-  const hx = P.cx - Math.floor(P.headW / 2), hy = P.headY, hw = P.headW, hh = P.headH;
-  const ox = hx - 1, oy = hy - 1, ow = hw + 2;
-  const neckTop = hy + hh, neckBot = neckTop + P.neck;
-
-  // 肩膀 / 球衣（梯形，逐行加宽）
-  for (let y = P.shStart; y < W; y++) {
-    const t = y - P.shStart;
-    const half = Math.min(P.shMax, Math.floor(P.shMax * 0.5) + Math.floor(t * 0.62));
-    for (let x = P.cx - half; x <= P.cx + half; x++) {
-      const edge = (x === P.cx - half || x === P.cx + half);
-      cv.set(x, y, edge ? OUT : (x < P.cx - half + 4 ? JER_D : (x > P.cx + half - 4 ? JER_D : JER)));
-    }
-  }
-  // 手臂：两侧竖直臂柱（球衣深色描边，内 3px 填充；护臂时换色）
-  for (const side of [-1, 1]) {
-    const ax = side < 0 ? hx - 9 : hx + hw + 2;
-    for (let y = P.shStart + 3; y < W; y++) {
-      for (let i = 0; i < 5; i++) {
-        const x = ax + i;
-        const isEdge = (i === 0 || i === 4);
-        const sleeveOn = spec.sleeve === 'both' || (spec.sleeve === 'r' && side > 0);
-        cv.set(x, y, isEdge ? OUT : (sleeveOn ? TRIM : (i < 2 ? JER_D : JER)));
+  /* —— 背景：黄昏色带 / 楼群剪影 / 涂鸦砖墙 / 铁丝网 / 水泥地（全硬边，无渐变） —— */
+  const bandEdge = [0, 4, 8, 12, 16, 20];
+  for (let b = 0; b < 5; b++) for (let y = bandEdge[b]; y < bandEdge[b + 1]; y++) cv.rect(0, y, W, 1, SKY[b]);
+  for (let bx = 0; bx < W;) {
+    const bw = 5 + pickHash('bw' + bx + card.id, 5);
+    const bh = 5 + pickHash('bh' + bx + card.id, 8);
+    cv.rect(bx, 20 - bh, bw, bh, CITY);
+    for (let wy = 20 - bh + 2; wy < 18; wy += 3) {
+      for (let wx = bx + 1; wx < bx + bw - 1; wx += 3) {
+        if (pickHash('lt' + bx + wx + wy, 3) === 0) cv.set(wx, wy, LIT);
       }
     }
+    bx += bw;
   }
-  // 领口与肩线（球队副色）
-  cv.rect(P.cx - 7, P.shStart, 14, 1, TRIM);
+  cv.rect(0, 20, W, 12, WALL);
+  for (let y = 20; y < 32; y += 4) cv.rect(0, y, W, 1, WALLD);
+  cv.rect(0, 23, 1, 1, WALLD); cv.rect(32, 27, 1, 1, WALLD); cv.rect(8, 27, 1, 1, WALLD); cv.rect(40, 23, 1, 1, WALLD);
+  const g1 = GRAFF[pickHash(card.id + 'g1', 4)];
+  const g2 = GRAFF[pickHash(card.id + 'g2', 4)];
+  cv.rect(1, 23, 4, 2, g1); cv.rect(3, 25, 3, 2, g1); cv.rect(5, 27, 2, 2, g1);
+  cv.rect(59, 24, 4, 2, g2); cv.rect(57, 26, 4, 2, g2); cv.rect(58, 28, 2, 2, g2);
+  for (let x = 0; x < W; x += 8) cv.rect(x, 27, 1, 5, FENCE);
+  for (let y = 28; y < 32; y += 2) {
+    for (let x = (y % 4 === 0 ? 2 : 0); x < W; x += 8) { cv.set(x, y, FENCE); cv.set(x + 4, y, FENCE); }
+  }
+  for (let y = 32; y < W; y++) for (let x = 0; x < W; x++) cv.set(x, y, ((x + y) % 2 === 0) ? CLAY : CLAYD);
+  [[3, 58], [5, 57], [7, 58], [9, 56], [10, 55], [54, 59], [56, 58], [58, 59], [60, 57]].forEach(([x, y]) => cv.set(x, y, CRACK));
+  cv.rect(48, 50, 6, 2, PATCH); cv.rect(10, 52, 5, 2, PATCH);
+
+  /* —— 人物（2.5 头身热血 Q 版：超大头、怒眉、大眼、张嘴呐喊） —— */
+  const B = ({
+    normal: { hw: 30, shStart: 37, shMax: 22 },
+    bulky: { hw: 32, shStart: 36, shMax: 26 },
+    tower: { hw: 28, shStart: 39, shMax: 20 },
+    slim: { hw: 28, shStart: 38, shMax: 18 }
+  })[spec.build] || { hw: 30, shStart: 37, shMax: 22 };
+  const hx = 32 - (B.hw >> 1), hy = 2, hw = B.hw, hh = 31;
+  const ox = hx - 1, oy = hy - 1, ow = hw + 2;
+
+  /* 肩膀 / 球衣（梯形加宽，描边，两侧阴影） */
+  for (let y = B.shStart; y < W; y++) {
+    const t = y - B.shStart;
+    const half = Math.min(B.shMax, 8 + Math.floor(t * 0.8));
+    for (let x = 32 - half; x <= 32 + half; x++) {
+      const edge = (x === 32 - half || x === 32 + half);
+      cv.set(x, y, edge ? OUT : (Math.abs(x - 32) > half - 4 ? JER_D : JER));
+    }
+  }
+  /* 两侧手臂：袖管 + 前臂（护臂走副色），贴球衣外沿 */
+  for (const side of [-1, 1]) {
+    const ax = side < 0 ? 32 - B.shMax + 1 : 32 + B.shMax - 5;
+    const sleeveOn = spec.sleeve === 'both' || (spec.sleeve === 'r' && side > 0);
+    for (let y = B.shStart + 1; y < W; y++) {
+      for (let i = 0; i < 5; i++) {
+        const isEdge = (i === 0 || i === 4);
+        cv.set(ax + i, y, isEdge ? OUT : (y <= B.shStart + 10 ? (sleeveOn ? TRIM : JER_D) : SK_M));
+      }
+    }
+    cv.rect(ax + 1, B.shStart + 10, 3, 1, TRIM);
+  }
+  /* V 领 + 侧边条纹 */
+  cv.rect(25, B.shStart, 14, 1, TRIM);
   for (let i = 0; i < 4; i++) {
-    cv.set(P.cx - 6 + i, P.shStart + 2 + i, TRIM);
-    cv.set(P.cx - 5 + i, P.shStart + 2 + i, TRIM);
-    cv.set(P.cx + 5 - i, P.shStart + 2 + i, TRIM);
-    cv.set(P.cx + 6 - i, P.shStart + 2 + i, TRIM);
+    cv.set(26 + i, B.shStart + 2 + i, TRIM);
+    cv.set(37 - i, B.shStart + 2 + i, TRIM);
   }
+  cv.rect(32 - B.shMax + 2, B.shStart + 5, 2, 18, TRIM);
+  cv.rect(32 + B.shMax - 4, B.shStart + 5, 2, 18, TRIM);
 
-  // 脖子
-  cv.rect(P.cx - 4, neckTop, 8, P.neck + 2, SK_M);
-  cv.rect(P.cx - 4, neckTop, 2, P.neck + 2, SK_D);
+  /* 号码（统一 ×4，1px 投影） */
+  const numText = String(card.number);
+  const numScale = 4;
+  const nw = numberWidth(numText, numScale);
+  const nx = 32 - (nw >> 1), ny = B.shStart + 7;
+  drawNumber(cv, numText, nx + 1, ny + 1, numScale, OUT);
+  drawNumber(cv, numText, nx, ny, numScale, NUM);
 
-  // 头（含描边）
-  cv.rect(ox, oy, ow, hh + 2, OUT);
+  /* 脖子（头压在上端） */
+  cv.rect(28, hy + hh - 2, 8, B.shStart - (hy + hh) + 4, SK_M);
+  cv.rect(28, hy + hh - 2, 2, B.shStart - (hy + hh) + 4, SK_D);
+
+  /* 头（描边 + 切角） */
+  cv.rect(ox, oy, ow, hh + 1, OUT);
+  cv.set(ox, oy, CLEAR); cv.set(ox + ow - 1, oy, CLEAR);
   cv.rect(hx, hy, hw, hh, SK_L);
-  cv.rect(hx, hy, 3, hh, SK_M);
-  cv.rect(hx + hw - 2, hy + 4, 2, hh - 5, SK_M);
+  cv.rect(hx, hy + 8, 2, hh - 10, SK_M);
+  cv.rect(hx + hw - 2, hy + 6, 2, hh - 7, SK_M);
   cv.rect(hx + 2, hy + hh - 2, hw - 4, 2, SK_M);
-  // 耳朵
-  cv.rect(hx - 2, hy + 8, 2, 4, SK_M);
-  cv.rect(hx - 3, hy + 8, 1, 4, OUT);
-  cv.rect(hx + hw, hy + 8, 2, 4, SK_M);
-  cv.rect(hx + hw + 2, hy + 8, 1, 4, OUT);
+  /* 耳朵 */
+  cv.rect(hx - 2, hy + 12, 2, 6, SK_M);
+  cv.set(hx - 3, hy + 12, OUT); cv.set(hx - 3, hy + 17, OUT);
+  cv.rect(hx + hw, hy + 12, 2, 6, SK_M);
+  cv.set(hx + hw + 2, hy + 12, OUT); cv.set(hx + hw + 2, hy + 17, OUT);
 
-  // 眉毛（发色）
-  const by = hy + 8;
-  const browW = spec.brow >= 2 ? 5 : 3;
-  const browH = spec.brow >= 1 ? 2 : 1;
-  cv.rect(hx + 4, by, browW, browH, HC);
-  cv.rect(hx + hw - 4 - browW, by, browW, browH, HC);
-
-  // 眼睛
-  cv.rect(hx + 5, hy + 11, 2, 2, OUT);
-  cv.rect(hx + hw - 7, hy + 11, 2, 2, OUT);
-
-  // 鼻 / 嘴
-  cv.rect(hx + Math.floor(hw / 2) - 1, hy + 14, 2, 2, SK_D);
-  cv.rect(hx + Math.floor(hw / 2) - 3, hy + 18, 6, 1, SK_D);
-
-  // 胡须（先胡须后嘴，嘴压在胡须上）
-  const bColor = HCD;
-  if (spec.beard === 'mustache') cv.rect(hx + 4, hy + 16, hw - 8, 1, bColor);
-  else if (spec.beard === 'goatee') {
-    cv.rect(hx + 4, hy + 16, hw - 8, 1, bColor);
-    cv.rect(hx + Math.floor(hw / 2) - 2, hy + 19, 4, 3, bColor);
-  } else if (spec.beard === 'full' || spec.beard === 'long') {
-    cv.rect(hx, hy + 14, 2, 8, bColor);
-    cv.rect(hx + hw - 2, hy + 14, 2, 8, bColor);
-    cv.rect(hx + 1, hy + 19, hw - 2, 3, bColor);
-    cv.rect(hx + 4, hy + 16, hw - 8, 1, bColor);
-    if (spec.beard === 'long') cv.rect(hx + 4, hy + hh, hw - 8, 3, bColor);
-  } else if (spec.beard === 'chinstrap') {
-    cv.rect(hx, hy + 16, 1, 6, bColor);
-    cv.rect(hx + hw - 1, hy + 16, 1, 6, bColor);
-    cv.rect(hx, hy + 21, hw, 1, bColor);
-    cv.rect(hx + 4, hy + 16, hw - 8, 1, bColor);
-  }
-  if (spec.beard !== 'none') cv.rect(hx + Math.floor(hw / 2) - 3, hy + 18, 6, 1, OUT);
-
-  // 发型（罩在头顶与两侧；afro/long 会超出头部轮廓）
+  /* 发型（热血尖角短发 + 其余既有发型） */
   const hs = spec.hair;
   if (hs === 'short') {
-    cv.rect(ox, oy, ow, 4, HC);
-    cv.rect(ox, oy + 4, 1, 4, HC);
-    cv.rect(ox + ow - 1, oy + 4, 1, 4, HC);
+    cv.rect(ox, oy + 1, ow, 4, HC);
+    cv.rect(ox, oy + 5, 1, 4, HC);
+    cv.rect(ox + ow - 1, oy + 5, 1, 4, HC);
+    for (let x = ox + 1; x < ox + ow - 3; x += 5) { cv.rect(x, oy - 1, 3, 3, HC); cv.set(x + 1, oy, HCD); }
   } else if (hs === 'buzz') {
-    cv.rect(ox, oy, ow, 2, HC);
-    cv.rect(ox, oy + 2, 1, 2, HC);
-    cv.rect(ox + ow - 1, oy + 2, 1, 2, HC);
+    cv.rect(ox, oy, ow, 3, HC);
+    cv.rect(ox, oy + 3, 1, 2, HC);
+    cv.rect(ox + ow - 1, oy + 3, 1, 2, HC);
   } else if (hs === 'bald') {
-    cv.rect(hx + 6, oy + 1, 8, 1, SK_L);
+    cv.rect(hx + 6, oy + 2, 9, 1, SK_L);
+    cv.rect(hx + 1, hy + 3, 1, 2, HCD);
+    cv.rect(hx + hw - 2, hy + 3, 1, 2, HCD);
   } else if (hs === 'receding') {
-    cv.rect(ox, oy, ow, 2, HC);
-    cv.rect(ox, oy + 2, 3, 2, HC);
-    cv.rect(ox + ow - 3, oy + 2, 3, 2, HC);
-    cv.rect(ox, oy + 4, 1, 4, HC);
-    cv.rect(ox + ow - 1, oy + 4, 1, 4, HC);
-  } else if (hs === 'afro') {
-    const rows = [
-      [hx + 5, hw - 10], [hx + 2, hw - 4], [hx - 1, hw + 2], [ox - 2, ow + 4], [ox - 2, ow + 4],
-      [ox - 2, ow + 4], [ox - 1, ow + 2], [ox, ow], [ox, ow]
-    ];
-    rows.forEach((rw, i) => cv.rect(rw[0], oy - 2 + i, rw[1], 1, HC));
-    cv.rect(ox - 2, oy + 7, 1, 5, HC);
-    cv.rect(ox + ow + 1, oy + 7, 1, 5, HC);
-  } else if (hs === 'curls') {
-    cv.rect(ox, oy, ow, 4, HC);
-    for (let x = ox; x < ox + ow; x += 4) {
-      cv.rect(x, oy + 4, 2, 2, HC);
-      cv.rect(x + 1, oy + 6, 2, 1, HC);
-    }
-    cv.rect(ox, oy + 4, 1, 3, HC);
-    cv.rect(ox + ow - 1, oy + 4, 1, 3, HC);
-  } else if (hs === 'braids') {
-    cv.rect(ox, oy, ow, 5, HC);
-    for (let x = ox + 2; x < ox + ow - 1; x += 4) cv.rect(x, oy + 1, 1, 4, HCD);
+    cv.rect(ox, oy, ow, 3, HC);
+    cv.rect(ox, oy + 3, 4, 2, HC);
+    cv.rect(ox + ow - 4, oy + 3, 4, 2, HC);
     cv.rect(ox, oy + 5, 1, 5, HC);
     cv.rect(ox + ow - 1, oy + 5, 1, 5, HC);
+  } else if (hs === 'afro') {
+    const rows = [[-2, ow + 4], [-3, ow + 6], [-3, ow + 6], [-3, ow + 6], [-2, ow + 4], [0, ow]];
+    rows.forEach((rw, i) => cv.rect(ox + rw[0], oy - 1 + i, rw[1], 1, HC));
+    cv.rect(ox - 2, oy + 5, 1, 7, HC);
+    cv.rect(ox + ow + 1, oy + 5, 1, 7, HC);
+  } else if (hs === 'curls') {
+    cv.rect(ox, oy + 1, ow, 4, HC);
+    for (let x = ox; x < ox + ow; x += 4) { cv.rect(x, oy + 5, 2, 2, HC); cv.rect(x + 1, oy + 7, 2, 1, HC); }
+    cv.rect(ox, oy + 5, 1, 3, HC);
+    cv.rect(ox + ow - 1, oy + 5, 1, 3, HC);
+  } else if (hs === 'braids') {
+    cv.rect(ox, oy, ow, 5, HC);
+    for (let x = ox + 2; x < ox + ow - 1; x += 4) cv.rect(x, oy + 1, 1, 10, HCD);
+    cv.rect(ox, oy + 5, 1, 6, HC);
+    cv.rect(ox + ow - 1, oy + 5, 1, 6, HC);
   } else if (hs === 'dreads') {
     cv.rect(ox, oy, ow, 4, HC);
-    cv.rect(ox - 2, oy + 4, 2, 7, HC);
-    cv.rect(ox + 1, oy + 4, 2, 9, HCD);
-    cv.rect(ox + ow - 1, oy + 4, 2, 9, HCD);
-    cv.rect(ox + ow + 1, oy + 4, 2, 7, HC);
+    cv.rect(ox - 2, oy + 3, 2, 9, HC);
+    cv.rect(ox + 1, oy + 4, 2, 10, HCD);
+    cv.rect(ox + ow - 1, oy + 4, 2, 10, HCD);
+    cv.rect(ox + ow, oy + 3, 2, 9, HC);
   } else if (hs === 'ponytail') {
     cv.rect(ox, oy, ow, 4, HC);
-    cv.rect(ox + ow, oy + 2, 2, 7, HC);
-    cv.rect(ox + ow + 1, oy + 9, 2, 4, HCD);
+    cv.rect(ox + ow, oy + 2, 3, 8, HC);
+    cv.rect(ox + ow + 1, oy + 10, 2, 4, HCD);
   } else if (hs === 'long') {
     cv.rect(ox, oy, ow, 4, HC);
-    cv.rect(ox - 1, oy + 4, 2, 11, HC);
-    cv.rect(ox + ow - 1, oy + 4, 2, 11, HC);
-    cv.rect(ox - 1, oy + 15, 1, 3, HCD);
-    cv.rect(ox + ow, oy + 15, 1, 3, HCD);
+    cv.rect(ox - 1, oy + 4, 2, 13, HC);
+    cv.rect(ox + ow - 1, oy + 4, 2, 13, HC);
+    cv.rect(ox - 1, oy + 17, 1, 3, HCD);
+    cv.rect(ox + ow, oy + 17, 1, 3, HCD);
   }
 
-  // 头饰
+  /* 头饰（压在发型下缘） */
   if (spec.band === 'headband') {
-    cv.rect(ox, oy + 5, ow, 2, TRIM);
-    cv.rect(ox, oy + 7, ow, 1, OUT);
+    cv.rect(ox - 2, hy + 7, 2, 4, TRIM);
+    cv.rect(ox + ow, hy + 7, 2, 4, TRIM);
+    cv.rect(ox, hy + 8, ow, 2, TRIM);
+    cv.rect(ox, hy + 10, ow, 1, OUT);
   } else if (spec.band === 'goggles') {
-    cv.rect(ox - 1, hy + 10, ow + 2, 1, OUT);
-    cv.rect(hx + 3, hy + 9, 6, 5, OUT);
-    cv.rect(hx + 4, hy + 10, 4, 3, LENS);
-    cv.rect(hx + hw - 9, hy + 9, 6, 5, OUT);
-    cv.rect(hx + hw - 8, hy + 10, 4, 3, LENS);
-    cv.rect(ox - 1, hy + 10, ow + 2, 1, OUT);
+    cv.rect(ox - 1, hy + 12, ow + 2, 1, OUT);
+    cv.rect(hx + 3, hy + 13, 8, 6, OUT);
+    cv.rect(hx + 4, hy + 14, 6, 4, LENS);
+    cv.rect(hx + hw - 11, hy + 13, 8, 6, OUT);
+    cv.rect(hx + hw - 10, hy + 14, 6, 4, LENS);
+    cv.rect(ox - 1, hy + 12, ow + 2, 1, OUT);
   }
 
-  // 球衣号码（带 1px 投影）
-  const numText = String(card.number);
-  const scale = numText.length >= 2 ? 4 : 5;
-  const w = numberWidth(numText, scale);
-  const nx = Math.floor((W - w) / 2), ny = P.shStart + 9;
-  drawNumber(cv, numText, nx + 1, ny + 1, scale, OUT);
-  drawNumber(cv, numText, nx, ny, scale, NUM);
+  /* 怒眉（人人有；brow 越高压得越狠、越粗） */
+  const bl = spec.brow >= 2 ? 6 : (spec.brow === 1 ? 5 : 4);
+  const drawBrow = (left) => {
+    const x0 = left ? hx + 4 : hx + hw - 4 - bl;
+    for (let k = 0; k < bl; k++) {
+      const step = Math.floor(k * 3 / bl);
+      const xx = left ? x0 + k : x0 + (bl - 1 - k);
+      cv.rect(xx, hy + 11 + step, 1, 2, HC);
+    }
+  };
+  drawBrow(true); drawBrow(false);
+
+  /* 大眼（白框 + 内侧深色瞳孔 + 高光） */
+  if (spec.band !== 'goggles') {
+    cv.rect(hx + 4, hy + 14, 6, 4, OUT);
+    cv.rect(hx + 5, hy + 14, 5, 3, NUM);
+    cv.rect(hx + 7, hy + 15, 2, 2, OUT);
+    cv.set(hx + 5, hy + 14, LIT);
+    cv.rect(hx + hw - 10, hy + 14, 6, 4, OUT);
+    cv.rect(hx + hw - 10, hy + 14, 5, 3, NUM);
+    cv.rect(hx + hw - 9, hy + 15, 2, 2, OUT);
+    cv.set(hx + hw - 6, hy + 14, LIT);
+  }
+
+  /* 鼻 */
+  cv.rect(31, hy + 19, 2, 2, SK_D);
+
+  /* 胡须（先画，呐喊嘴再压上来） */
+  const bc = HCD;
+  if (spec.beard === 'mustache') {
+    cv.rect(hx + 4, hy + 22, hw - 8, 2, bc);
+  } else if (spec.beard === 'goatee') {
+    cv.rect(hx + 4, hy + 22, hw - 8, 2, bc);
+    cv.rect(30, hy + 28, 4, 3, bc);
+  } else if (spec.beard === 'full' || spec.beard === 'long') {
+    cv.rect(hx, hy + 18, 2, 10, bc);
+    cv.rect(hx + hw - 2, hy + 18, 2, 10, bc);
+    cv.rect(hx + 2, hy + 27, hw - 4, 3, bc);
+    cv.rect(hx + 4, hy + 22, hw - 8, 2, bc);
+    if (spec.beard === 'long') cv.rect(hx + 4, hy + hh - 1, hw - 8, 2, bc);
+  } else if (spec.beard === 'chinstrap') {
+    cv.rect(hx, hy + 21, 1, 7, bc);
+    cv.rect(hx + hw - 1, hy + 21, 1, 7, bc);
+    cv.rect(hx, hy + 27, hw, 1, bc);
+    cv.rect(hx + 4, hy + 22, hw - 8, 1, bc);
+  }
+
+  /* 嘴：全员张开呐喊（上排牙 + 口腔 + 舌头） */
+  cv.rect(27, hy + 23, 10, 6, OUT);
+  cv.rect(28, hy + 24, 8, 4, MOUTH);
+  cv.rect(28, hy + 24, 8, 1, NUM);
+  cv.rect(30, hy + 27, 4, 1, TONGUE);
 
   return cv;
 }
+
+
 /* ---------------- TabBar 图标（16×16 设计 → ×5 = 80×80） ---------------- */
 const ICON_ART = {
   home: [
