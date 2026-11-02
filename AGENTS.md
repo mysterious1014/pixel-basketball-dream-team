@@ -73,7 +73,7 @@ Page(store.connectPage(function (state, self) {
 ## 6. 提交前必跑
 
 ```bash
-node tools/verify.mjs                      # 必须 PASS 206 / FAIL 0（A~R 共 18 组）
+node tools/verify.mjs                      # 必须 PASS 215 / FAIL 0（A~S 共 19 组）
 node tools/replay-battle.mjs --all --all-arena  # 必须「全部通过：比赛结算可复现」（18 关 + 12 位天梯对手，各 7 项 = 210 项）
 ```
 
@@ -168,3 +168,4 @@ node tools/replay-battle.mjs --all --all-arena  # 必须「全部通过：比赛
 31. **录「实机演示视频」必须带窗口 + -gpu host，否则录出来是 PPT**。-no-window -gpu swiftshader_indirect 下没有真实的 vsync 消费者，软件 GPU 把整条链路节流：dumpsys gfxinfo com.dabocai.pixeldreamteam 两次取差只有 **1.25 fps**（8 秒 71→153 帧），screenrecord 忠实地录到 1.1 fps。改成 mulator -avd pxtest -accel on -no-metrics -no-audio -no-boot-anim -gpu host（本机 RTX 3060，gfxstream + VkEmulation）后应用渲染 **10.25 fps** —— 这已经是上限，因为游戏自己的动画节奏就是 config.battle.playback.animMs = 95 ≈ 10.5 fps。录之前先用 gfxinfo 确认帧率，录之后用 
 ode E:\codex\tools\px-h5\px-mp4info.mjs <mp4> 复核（本机**没有 ffmpeg/ffprobe**，这脚本纯 Node 解析 mvhd/tkhd/stsd/stts）。TapTap 实机录屏硬规格：mp4/mov(H.264/HEVC)、>15 s 且 ≤1800 s、≥540×540、宽高比 9:21~21:9、**前 5 秒内出现核心玩法且持续 ≥10 秒**、**不得加人声配音与字幕**、不得画中画。底部那 9 px 高的安卓手势条（y 2364–2372）**在 APK 外消不掉**（policy_control immersive.full/navigation、
 avigation_mode 0/2 全试过），要干净只能让壳自己申请 HIDE_NAVIGATION。
+32. **页面同步刷新后，成功提示不要再 `this.data.x + 1`**。`store` 的 dispatch 是同步的，`connectPage` 可能在命令返回前就已经 `resync`，此时页面字段已是新值，再 `+1` 就会显示「实际 Lv2 / toast Lv3」。升级 / 升星 / 突破一律读命令返回的 `res.level / res.stars / res.breakthrough`；S 组详情页用例已锁「实际 Lv2 == 升级成功 Lv2」。

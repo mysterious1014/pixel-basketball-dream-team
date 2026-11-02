@@ -21,6 +21,7 @@ const SPEEDS = [
 Page(store.connectPage(function (state) {
   const s = state.settings || {};
   const progress = selectors.collectionProgress(state);
+  const cap = selectors.salaryCapView(state);
   return {
     reduceMotion: !!s.reduceMotion,
     fictionalNames: !!s.fictionalNames,
@@ -59,7 +60,12 @@ Page(store.connectPage(function (state) {
     portraitEnabled: CONFIG.art.portraitEnabled,
     fontPathSet: !!CONFIG.art.localFontPath,
     fontStack: CONFIG.art.fontStack,
-    salaryCap: fmt.salaryText(CONFIG.roster.salaryCap),
+    salaryCap: cap.capText,
+    salaryCapLevel: cap.level,
+    salaryCapBonus: cap.bonusText,
+    salaryCapNext: cap.nextText,
+    salaryCapRule: cap.ruleText,
+    salaryPolicyText: '训练只提升属性，不改变合同薪资；工资帽随经理等级成长。',
     staminaMax: CONFIG.economy.staminaMax,
     staminaSeconds: CONFIG.economy.staminaRecoverSeconds,
     hardPity: CONFIG.gacha.pity.advancedUrHardPity,
@@ -74,7 +80,8 @@ Page(store.connectPage(function (state) {
     gameName: '', version: '', milestone: '', cardCount: 0, handCount: 0, academyCount: 0,
     stageCount: 0, chapterCount: 0, commentaryCount: 0, itemCount: 0, ownedCount: 0,
     portraitEnabled: true, fontPathSet: false, fontStack: '',
-    salaryCap: '', staminaMax: 120, staminaSeconds: 300, hardPity: 90, prdInc: '2%', roundsPerQuarter: 12,
+    salaryCap: '', salaryCapLevel: 1, salaryCapBonus: '', salaryCapNext: '', salaryCapRule: '', salaryPolicyText: '',
+    staminaMax: 120, staminaSeconds: 300, hardPity: 90, prdInc: '2%', roundsPerQuarter: 12,
     aboutOpen: false
   },
 

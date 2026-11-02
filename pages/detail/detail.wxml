@@ -26,7 +26,7 @@
       </view>
 
       <view class="dt-hero-meta px-mt12">
-        <view class="dt-meta"><text class="px-mute">薪资</text><text class="dt-meta-v">{{salaryText}}</text></view>
+        <view class="dt-meta"><text class="px-mute">合同薪资</text><text class="dt-meta-v">{{salaryText}}</text></view>
         <view class="dt-meta"><text class="px-mute">等级</text><text class="dt-meta-v">Lv{{level}}/{{levelMax}}</text></view>
         <view class="dt-meta"><text class="px-mute">星级</text><text class="dt-meta-v dt-star">{{starText}}</text></view>
         <view class="dt-meta"><text class="px-mute">突破</text><text class="dt-meta-v">+{{breakthrough}}</text></view>
@@ -39,7 +39,10 @@
         <text wx:for="{{tags}}" wx:key="*this" class="px-chip dt-tag">{{item}}</text>
       </view>
       <view class="px-row--between px-mt12">
-        <text class="px-mute">出厂 OVR {{baseOvr}}（{{baseRarity}}）· 养成 +{{bonus}} 属性 · 薪资 {{baseSalaryText}} → {{salaryText}}</text>
+        <text class="px-mute">出厂 OVR {{baseOvr}}（{{baseRarity}}）· 养成 +{{bonus}} 属性</text>
+      </view>
+      <view class="px-row--between px-mt8">
+        <text class="px-mute">合同薪资 {{salaryText}}（出厂 {{baseSalaryText}}）· {{salaryPolicyText}}</text>
       </view>
       <view class="px-row--between px-mt8">
         <text class="px-mute">同名卡 {{dups}} 张（升星材料）· 当前{{rosterLabel}}</text>
@@ -105,6 +108,16 @@
           <text class="px-mute">每次全属性 +3 · {{brCostText}}</text>
         </view>
         <view class="px-btn px-btn--sm {{canBreak ? 'px-btn--gold' : 'px-btn--disabled'}}" bindtap="onBreak">{{brMaxed ? '已满' : '突破'}}</view>
+      </view>
+
+      <view class="dt-grow">
+        <view class="px-col px-grow px-gap8">
+          <text class="px-h3">培养重置</text>
+          <text class="px-mute">{{growthResetSummary}}</text>
+          <text class="px-mute">{{growthResetNote}}</text>
+        </view>
+        <view class="px-btn px-btn--sm {{growthResetAvailable ? 'px-btn--danger' : 'px-btn--disabled'}}"
+          bindtap="onResetGrowth">{{growthResetButtonText}}</view>
       </view>
     </view>
 

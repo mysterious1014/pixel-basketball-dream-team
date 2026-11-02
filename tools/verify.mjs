@@ -18,6 +18,8 @@
  *   O 交易市场（橱窗确定性 / 买入卖出刷新 / 附件退回 / 页面驱动）
  *   P 王朝赛季 & 赛季通行证（积分口径 / 跨窗滚动 / 两轨领奖 / 页面驱动）
  *   Q 每日任务 & 钻石商店（跨阈值发奖 / 三侧同解 / 视图与命令同口径 / 页面驱动）
+ *   R 竞技场加赛（钻石加购次数 / 防伪造 / 跨天归零 / 页面驱动）
+ *   S 玩家评价优化（动态工资帽 / 训练不涨薪 / 培养重置 / 一键排阵）
  * 退出码 = 失败用例数（0 = 全绿），可直接接 CI。
  */
 import fs from 'node:fs';
@@ -5229,7 +5231,309 @@ check('陈旧占位收口：设置页音效文案诚实化；版本号后缀与�
   const sv = selectors.shopView(store.getState());
   assert(sv.incomeText.indexOf('加赛') !== -1, '竞技商城收入公示未提示加赛出口：' + sv.incomeText);
   return true;
-});/* ================= 汇总 ================= */
+});/* ================= S 玩家评价优化（动态工资帽 / 训练不涨薪 / 培养重置 / 一键排阵） =================
+ * 来源：TapTap 玩家评价（5★）。诉求拆成四条可验收规则：
+ *   ① 经理等级必须真正影响工资帽，尤其要能容纳「5 名 95+ 首发 + 7 名低价替补」的后期阵容；
+ *   ② 训练只提升属性，不自动涨合同薪资；
+ *   ③ 培养可以反悔：等级 / 突破重置，100% 返还已花金币与突破碎片，升星保留；
+ *   ④ 一键排阵必须在动态工资帽内求解，不能点完反而超帽。
+ * 同时锁定旧存档兼容：本次不新增存档字段，旧档里的等级 / 突破 / 星级 / 装备 / 时刻卡 / uid 原样保留。
+ */
+section('S 玩家评价优化（动态工资帽 / 训练不涨薪 / 培养重置 / 一键排阵）');
+
+/* 评价里的真实阵容：5 名 95+ 首发（薪资 8871）+ 7 名最低价 SSR 替补（薪资 7863）。 */
+const S_STARTER_IDS = [
+  'jordan_michael_peak', 'james_lebron_peak', 'jokic_nikola_active',
+  'gilgeous_alexander_active', 'wembanyama_victor_active'
+];
+const S_BENCH_IDS = [
+  'booker_devin_active', 'brown_jaylen_active', 'embiid_joel_active', 'james_lebron_active',
+  'carter_vince_peak', 'maxey_tyrese_active', 'curry_stephen_active'
+];
+
+function sInstance(uid, cardId, patch) {
+  return Object.assign({
+    uid: uid, cardId: cardId, level: 1, stars: 1, breakthrough: 0,
+    equipment: { shoes: null, wrist: null, head: null },
+    obtainedAt: 1000, source: 'probe'
+  }, patch || {});
+}
+
+function sReviewState(level) {
+  store.init({ fresh: true, force: true, now: NOON });
+  const s = JSON.parse(JSON.stringify(store.getState()));
+  s.profile.level = level;
+  s.collection = {};
+  s.roster.starters = [];
+  s.roster.bench = [];
+  let n = 0;
+  S_STARTER_IDS.forEach(function (cardId) {
+    const uid = 'rs' + n;
+    s.collection[uid] = sInstance(uid, cardId);
+    s.roster.starters.push(uid);
+    n++;
+  });
+  S_BENCH_IDS.forEach(function (cardId) {
+    const uid = 'rb' + n;
+    s.collection[uid] = sInstance(uid, cardId);
+    s.roster.bench.push(uid);
+    n++;
+  });
+  while (s.roster.bench.length < CONFIG.roster.benchCount) s.roster.bench.push(null);
+  return s;
+}
+
+check('工资帽曲线：Lv.1 基准 / 每级 +500 / Lv.13 封顶 18000 / 非法等级回落 Lv.1，视图与函数同口径', () => {
+  const R = CONFIG.roster;
+  const c1 = growth.salaryCapInfo(1);
+  const c3 = growth.salaryCapInfo(3);
+  const c13 = growth.salaryCapInfo(13);
+  const c99 = growth.salaryCapInfo(99);
+  const c0 = growth.salaryCapInfo(0);
+  assert(c1.level === 1 && c1.cap === R.salaryCap, 'Lv.1 应等于配置基准：' + JSON.stringify(c1));
+  assert(c3.cap === Math.min(R.salaryCapMax, R.salaryCap + 2 * R.salaryCapPerLevel), 'Lv.3 工资帽不符：' + JSON.stringify(c3));
+  assert(c13.cap === R.salaryCapMax && c13.atMax === true, 'Lv.13 应封顶：' + JSON.stringify(c13));
+  assert(c99.cap === R.salaryCapMax && c99.nextGain === 0, '封顶后继续升级不应再涨：' + JSON.stringify(c99));
+  assert(c0.level === 1 && c0.cap === R.salaryCap, '非法等级应回落到 Lv.1');
+
+  store.init({ fresh: true, force: true, now: NOON });
+  const s = JSON.parse(JSON.stringify(store.getState()));
+  s.profile.level = 13;
+  store.dispatch(store.actions.hydrate(s));
+  const v = selectors.salaryCapView(store.getState());
+  const rv = selectors.rosterView(store.getState());
+  assert(v.level === 13 && v.cap === R.salaryCapMax && rv.salaryCap === v.cap, 'selector 工资帽与纯函数不一致');
+  assert(v.summaryText.indexOf('Lv.13') !== -1 && v.ruleText.indexOf('每升 1 级') !== -1, '工资帽文案缺等级来源：' + v.summaryText);
+  return true;
+});
+
+check('评价真实场景：5 名 95+ 首发 + 7 名低价 SSR 替补在 Lv.1 超帽、在 Lv.13 完整可出战', () => {
+  let s = sReviewState(1);
+  const total = S_STARTER_IDS.concat(S_BENCH_IDS).reduce(function (sum, id) { return sum + players.getCard(id).salary; }, 0);
+  assert(total === 16734, '评价场景薪资基线漂移：' + total);
+  store.dispatch(store.actions.hydrate(s));
+  let v = selectors.rosterView(store.getState());
+  assert(v.starterCount === 5 && v.benchCount === 7, '评价阵容人数不符');
+  assert(v.totalSalary === 16734 && v.salaryCap === 12000 && v.overCap === true, 'Lv.1 应按评价场景超帽：' + JSON.stringify({ total: v.totalSalary, cap: v.salaryCap }));
+  const before = JSON.stringify(store.getState());
+  const denied = store.startBattle({ stageId: 's1-1', seed: 's-review-overcap' });
+  assert(denied.ok === false && /工资帽/.test(denied.reason), '超帽应拒绝出战：' + (denied && denied.reason));
+  assert(JSON.stringify(store.getState()) === before, '超帽拒绝不应改动存档');
+
+  s = sReviewState(13);
+  store.dispatch(store.actions.hydrate(s));
+  v = selectors.rosterView(store.getState());
+  assert(v.totalSalary === 16734 && v.salaryCap === 18000 && v.overCap === false, 'Lv.13 应可完整容纳评价阵容');
+  const ok = store.startBattle({ stageId: 's1-1', seed: 's-review-cap-ok' });
+  assert(ok.ok, 'Lv.13 应能实际出战：' + (ok && ok.reason));
+  assert(store.getState().season.cleared['s1-1'], 'Lv.13 出战未写入关卡记录');
+  return true;
+});
+
+check('训练与装备提升属性，但合同薪资恒为出厂值；阵容工资帽总额不因培养上涨', () => {
+  store.init({ fresh: true, force: true, now: NOON });
+  const uid = store.getState().roster.starters[0];
+  const def = players.getCard(store.getState().collection[uid].cardId);
+  const before = selectors.effectiveCardOf(store.getState(), uid);
+  const total0 = selectors.rosterView(store.getState()).totalSalary;
+  const lv = store.levelUp(uid);
+  assert(lv.ok, '升级应成功：' + lv.reason);
+  const trained = selectors.effectiveCardOf(store.getState(), uid);
+  assert(trained.level === before.level + 1, '等级未提升');
+  assert(trained.attrs.three >= before.attrs.three && trained.ovr >= before.ovr, '训练没有提升属性');
+  assert(trained.salary === def.salary && trained.baseSalary === def.salary, '训练后合同薪资漂移：' + trained.salary + ' / ' + def.salary);
+
+  store.dispatch(store.actions.addItem('shoes_street', 1));
+  const eq = store.equip(uid, 'shoes_street');
+  assert(eq.ok, '装备应成功：' + eq.reason);
+  const equipped = selectors.effectiveCardOf(store.getState(), uid);
+  assert(equipped.attrs.speed > trained.attrs.speed, '装备未生效');
+  assert(equipped.salary === def.salary, '装备后合同薪资漂移');
+  const total1 = selectors.rosterView(store.getState()).totalSalary;
+  assert(total1 === total0, '培养 / 装备导致工资帽总额变化：' + total0 + ' -> ' + total1);
+  assert(selectors.homeTeam(store.getState()).players.filter(function (p) { return p.uid === uid; })[0].salary === def.salary,
+    '比赛输入里的薪资不是出厂值');
+  return true;
+});
+
+check('培养重置：等级 / 突破回退，返还 4444 金币 + 8 碎片，星级 / 装备 / 时刻卡 / uid 全部保留', () => {
+  store.init({ fresh: true, force: true, now: NOON });
+  const s = JSON.parse(JSON.stringify(store.getState()));
+  s.profile.gold = 50000;
+  s.bag.shard = 20;
+  const uid = 's-reset';
+  s.collection[uid] = sInstance(uid, 'james_lebron_active', {
+    level: 3, breakthrough: 1, stars: 3,
+    equipment: { shoes: 'shoes_street', wrist: null, head: null },
+    moment: 'm_warmup', obtainedAt: 12345, source: 'review-test'
+  });
+  store.dispatch(store.actions.hydrate(s));
+  const plan = growth.resetPlan(store.getState().collection[uid]);
+  const view = selectors.growthResetView(store.getState(), uid);
+  assert(plan.refundGold === 4444 && plan.refundShard === 8, '返还计划不符：' + JSON.stringify(plan));
+  assert(view.available === true && view.summaryText.indexOf('返还') !== -1, '重置视图不可用：' + JSON.stringify(view));
+  assert(view.refundGold === plan.refundGold && view.refundShard === plan.refundShard, '视图与纯函数返还额不一致');
+
+  const res = store.resetGrowth(uid);
+  assert(res.ok, '重置应成功：' + res.reason);
+  assert(res.beforeLevel === 3 && res.beforeBreakthrough === 1 && res.refundGold === 4444 && res.refundShard === 8, '命令返回值不符：' + JSON.stringify(res));
+  const st = store.getState();
+  const inst = st.collection[uid];
+  assert(st.profile.gold === 54444 && (Number(st.bag.shard) || 0) === 28, '返还未入账：' + st.profile.gold + ' / ' + st.bag.shard);
+  assert(inst.level === 1 && inst.breakthrough === 0, '等级 / 突破未回退');
+  assert(inst.stars === 3, '升星不应被重置');
+  assert(JSON.stringify(inst.equipment) === JSON.stringify({ shoes: 'shoes_street', wrist: null, head: null }), '装备被重置吞掉');
+  assert(inst.moment === 'm_warmup', '时刻卡被重置吞掉');
+  assert(inst.uid === uid && inst.cardId === 'james_lebron_active' && inst.obtainedAt === 12345 && inst.source === 'review-test', '卡牌身份字段被改动');
+  assert(selectors.growthResetView(st, uid).available === false, '重置后仍显示可重置');
+
+  const snap = JSON.stringify(st);
+  const again = store.resetGrowth(uid);
+  assert(again.ok === false && /没有可重置/.test(again.reason), '重复重置应可读拒绝：' + (again && again.reason));
+  assert(JSON.stringify(store.getState()) === snap, '重复重置改动了存档');
+  return true;
+});
+
+check('培养重置 reducer 防御：直派伪造 refundGold / refundShard 仍按实例重算，未知 uid 恒等返回', () => {
+  store.init({ fresh: true, force: true, now: NOON });
+  const s = JSON.parse(JSON.stringify(store.getState()));
+  s.profile.gold = 0;
+  s.bag.shard = 0;
+  const uid = 's-fake-reset';
+  s.collection[uid] = sInstance(uid, 'james_lebron_active', { level: 3, breakthrough: 1, stars: 2 });
+  const plan = growth.resetPlan(s.collection[uid]);
+  const forged = reducers.reduce(s, {
+    type: store.actions.T.RESET_GROWTH,
+    payload: { uid: uid, refundGold: 99999999, refundShard: 99999999, now: 2000 }
+  });
+  assert(forged !== s, '合法重置应产生新 state');
+  assert(forged.profile.gold === plan.refundGold && (Number(forged.bag.shard) || 0) === plan.refundShard,
+    '伪造返还额被采信：' + forged.profile.gold + ' / ' + forged.bag.shard);
+  assert(forged.collection[uid].level === 1 && forged.collection[uid].breakthrough === 0, '伪造 payload 未触发回退');
+  assert(forged.collection[uid].stars === 2, 'reducer 不应改动升星');
+  const unchanged = reducers.reduce(s, {
+    type: store.actions.T.RESET_GROWTH,
+    payload: { uid: 'missing-uid', refundGold: 99999999, refundShard: 99999999, now: 2000 }
+  });
+  assert(unchanged === s, '未知 uid 应恒等返回');
+  return true;
+});
+
+check('一键排阵：在动态工资帽内求首发最大 OVR；Lv.1 只排 2 名替补、Lv.13 排满 7 人且不超帽', () => {
+  let s = sReviewState(1);
+  store.dispatch(store.actions.hydrate(s));
+  let res = store.autoFill();
+  let st = store.getState();
+  let v = selectors.rosterView(st);
+  assert(res.ok && v.starterCount === 5, 'Lv.1 一键排阵首发不足');
+  assert(v.totalSalary === 11164 && v.salaryCap === 12000 && v.overCap === false, 'Lv.1 排阵结果不符：' + JSON.stringify({ total: v.totalSalary, cap: v.salaryCap }));
+  assert(res.benchCount === 2 && res.benchNeed === 7 && v.benchCount === 2, 'Lv.1 替补人数应受工资帽约束：' + JSON.stringify(res));
+  assert(res.totalSalary === v.totalSalary && res.salaryCap === v.salaryCap && res.overCap === v.overCap, '命令与 rosterView 口径不一致');
+  const allUids = st.roster.starters.filter(Boolean).concat(st.roster.bench.filter(Boolean));
+  assert(new Set(allUids).size === allUids.length, '一键排阵出现重复卡');
+  assert(v.starters.every(function (c) { return c && c.position; }), '首发存在空位');
+
+  s = sReviewState(13);
+  store.dispatch(store.actions.hydrate(s));
+  res = store.autoFill();
+  st = store.getState();
+  v = selectors.rosterView(st);
+  assert(v.starterCount === 5 && v.benchCount === 7 && res.benchCount === 7, 'Lv.13 应排满 7 名替补');
+  assert(v.totalSalary === 16734 && v.salaryCap === 18000 && v.overCap === false, 'Lv.13 排阵结果不符');
+  assert(res.starterAvgOvr === v.starterAvgOvr && res.totalSalary === v.totalSalary, 'Lv.13 命令摘要与视图不一致');
+  return true;
+});
+
+check('详情页真实驱动：显示训练不涨薪 + 可重置摘要，点按钮后 store 与页面字段同步', () => {
+  store.init({ fresh: true, force: true, now: NOON });
+  const s = JSON.parse(JSON.stringify(store.getState()));
+  s.profile.gold = 50000;
+  s.bag.shard = 20;
+  const uid = 's-page-reset';
+  s.collection[uid] = sInstance(uid, 'james_lebron_active', {
+    level: 3, breakthrough: 1, stars: 2,
+    equipment: { shoes: 'shoes_street', wrist: null, head: null },
+    moment: 'm_warmup'
+  });
+  store.dispatch(store.actions.hydrate(s));
+  kResetUi();
+  N_UI.modals.length = 0;
+  const inst = kMount('pages/detail/detail.js', { uid: uid });
+  try {
+    const v = selectors.growthResetView(store.getState(), uid);
+    assert(inst.data.salaryPolicyText.indexOf('训练不涨薪') !== -1, '详情页未说明训练不涨薪：' + inst.data.salaryPolicyText);
+    assert(inst.data.growthResetAvailable === true, '详情页未显示可重置');
+    assert(inst.data.growthResetSummary === v.summaryText, '详情页重置摘要与 selector 不一致');
+    inst.onResetGrowth();
+    assert(N_UI.modals.length === 1 && N_UI.modals[0].title === '重置培养', '缺重置二次确认');
+    assert(store.getState().collection[uid].level === 1 && store.getState().collection[uid].breakthrough === 0, '页面重置未落库');
+    assert(K_UI.toast.some(function (t) { return t.indexOf('已重置') !== -1; }), '缺重置成功 toast：' + JSON.stringify(K_UI.toast));
+    assert(inst.data.level === 1 && inst.data.breakthrough === 0 && inst.data.growthResetAvailable === false, '页面字段未随 store 刷新');
+
+    K_UI.toast.length = 0;
+    inst.onLevelUp();
+    assert(store.getState().collection[uid].level === 2, '页面升级未落库');
+    assert(K_UI.toast[K_UI.toast.length - 1] === '升级成功 Lv2', '升级 toast 未按命令返回值：' + JSON.stringify(K_UI.toast));
+
+    K_UI.toast.length = 0;
+    inst.onBreak();
+    assert(store.getState().collection[uid].breakthrough === 1, '页面突破未落库');
+    assert(K_UI.toast[K_UI.toast.length - 1] === '突破成功 +1', '突破 toast 未按命令返回值：' + JSON.stringify(K_UI.toast));
+  } finally { kUnmount(inst); }
+  return true;
+});
+
+check('旧档兼容：migrate 不改 uid / 等级 / 突破 / 星级 / 装备 / 时刻卡；工资帽按等级重算、薪资按出厂值冻结', () => {
+  store.init({ fresh: true, force: true, now: NOON });
+  const saved = JSON.parse(JSON.stringify(store.getState()));
+  saved.profile.level = 7;
+  saved.collection = {};
+  const uid = 'legacy-1';
+  saved.collection[uid] = sInstance(uid, 'james_lebron_active', {
+    level: 5, breakthrough: 2, stars: 4,
+    equipment: { shoes: 'shoes_street', wrist: 'wrist_tape', head: 'head_retro' },
+    moment: 'm_and_one', obtainedAt: 777, source: 'legacy'
+  });
+  saved.roster.starters = [uid, null, null, null, null];
+  saved.roster.bench = [null, null, null, null, null, null, null];
+  const migrated = store.migrate(saved, NOON);
+  const inst = migrated.collection[uid];
+  assert(inst, 'migrate 丢了卡牌');
+  assert(inst.uid === uid && inst.cardId === 'james_lebron_active', 'migrate 改了卡牌身份');
+  assert(inst.level === 5 && inst.breakthrough === 2 && inst.stars === 4, 'migrate 改了培养进度');
+  assert(JSON.stringify(inst.equipment) === JSON.stringify({ shoes: 'shoes_street', wrist: 'wrist_tape', head: 'head_retro' }), 'migrate 丢了装备');
+  assert(inst.moment === 'm_and_one' && inst.obtainedAt === 777 && inst.source === 'legacy', 'migrate 丢了时刻卡 / 来源字段');
+  assert(migrated.roster.starters[0] === uid, 'migrate 改了阵容引用');
+  const cap = selectors.salaryCapView(migrated);
+  assert(cap.level === 7 && cap.cap === growth.salaryCapOf(7), '迁移后工资帽没有按等级实时计算');
+  const eff = growth.effectiveCard(players.getCard(inst.cardId), inst, items.EQUIP_INDEX);
+  assert(eff.salary === players.getCard(inst.cardId).salary, '旧档培养卡薪资没有按出厂值重算');
+  return true;
+});
+
+check('模板与源码收口：主页 / 阵容 / 个人页 / 设置 / 详情都把动态工资帽与培养重置接到玩家可见处', () => {
+  const read = function (rel) { return fs.readFileSync(path.join(ROOT, rel), 'utf8'); };
+  const cases = [
+    ['pages/home/home.wxml', '工资帽 Lv{{level}}', '主页工资帽未显示经理等级'],
+    ['pages/roster/roster.wxml', '经理 Lv{{capLevel}}', '阵容页未显示工资帽等级来源'],
+    ['pages/roster/roster.wxml', '{{salaryTrainingNote}}', '阵容页未说明训练不涨薪'],
+    ['pages/profile/profile.wxml', '经理等级权益', '个人页缺经理等级权益面板'],
+    ['pages/settings/settings.wxml', '{{salaryCapRule}}', '设置页缺工资帽成长规则'],
+    ['pages/settings/settings.wxml', '{{salaryPolicyText}}', '设置页缺训练薪资口径'],
+    ['pages/detail/detail.wxml', 'bindtap="onResetGrowth"', '详情页缺培养重置入口'],
+    ['pages/detail/detail.wxml', '{{growthResetSummary}}', '详情页缺重置返还摘要'],
+    ['pages/detail/detail.wxml', '{{salaryPolicyText}}', '详情页缺训练薪资说明']
+  ];
+  cases.forEach(function (c) { assert(read(c[0]).indexOf(c[1]) !== -1, c[2] + '（' + c[0] + '）'); });
+  const rosterJs = read('pages/roster/roster.js');
+  const detailJs = read('pages/detail/detail.js');
+  assert(rosterJs.indexOf('store.autoFill(') !== -1, '阵容页一键排阵未走命令层');
+  assert(detailJs.indexOf('store.resetGrowth(') !== -1, '详情页重置未走命令层');
+  assert(rosterJs.indexOf('store.actions.autoFillRoster(') === -1, '阵容页不应直派 AUTO_FILL_ROSTER');
+  assert(detailJs.indexOf('store.actions.resetGrowth(') === -1, '详情页不应直派 RESET_GROWTH');
+  return true;
+});
+/* ================= 汇总 ================= */
 console.log('\n========================================');
 console.log('PASS ' + pass + '  FAIL ' + fail);
 if (failures.length) {

@@ -16,6 +16,23 @@
     </view>
   </view>
 
+  <!-- 经理等级权益（玩家评价优化：等级 → 工资帽） -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">经理等级权益</text>
+      <text class="px-mute">Lv.{{capLevel}}</text>
+    </view>
+    <view class="pf-stats">
+      <view class="pf-stat"><text class="pf-stat-v">{{capText}}</text><text class="px-mute">当前工资帽</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{capBaseText}}</text><text class="px-mute">Lv.1 基础</text></view>
+      <view class="pf-stat"><text class="pf-stat-v">{{capBonusText}}</text><text class="px-mute">等级加成</text></view>
+    </view>
+    <text class="px-mute pf-note">{{capRuleText}}</text>
+    <text wx:if="{{capAtMax}}" class="px-mute pf-note">工资帽已达上限。</text>
+    <text wx:else class="px-mute pf-note">升级预告：{{capNextText}}</text>
+    <text class="px-mute pf-note">{{capTrainingNote}}</text>
+  </view>
+
   <!-- 功能入口 -->
   <view class="px-grid4 px-mt16">
     <view class="pf-entry" bindtap="goCollection"><text class="pf-entry-ico">图</text><text>图鉴</text></view>

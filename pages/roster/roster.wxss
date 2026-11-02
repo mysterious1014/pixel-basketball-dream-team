@@ -3,6 +3,7 @@
 .rs-cap-num { font-size: 40rpx; color: var(--gold); letter-spacing: 2rpx; text-shadow: 4rpx 4rpx 0 rgba(0,0,0,0.7); }
 .rs-cap-num--over { color: var(--danger); }
 .rs-cap-slash { font-size: 24rpx; color: var(--text-mute); }
+.rs-cap-rule { display: block; margin-top: 6rpx; line-height: 1.6; }
 .rs-warn { font-size: 22rpx; color: var(--danger); }
 .rs-tip { font-size: 22rpx; color: var(--orange); }
 

@@ -104,6 +104,13 @@ Page(store.connectPage(function (state, self) {
     capRatio: Math.round(view.capRatio * 100),
     overCap: view.overCap,
     salaryLeft: view.salaryLeft,
+    capLevel: view.salaryCapLevel,
+    capBaseText: view.salaryCapBaseText,
+    capBonusText: view.salaryCapBonusText,
+    capNextText: view.salaryCapNextText,
+    capAtMax: view.salaryCapAtMax,
+    capRuleText: view.salaryCapRuleText,
+    salaryTrainingNote: view.salaryTrainingNote,
     starterCount: view.starterCount,
     starterNeed: CONFIG.roster.starterCount,
     benchCount: view.benchCount,
@@ -156,6 +163,8 @@ Page(store.connectPage(function (state, self) {
     starters: [], bench: [],
     totalSalaryText: '0 万', capText: '0 万', leftText: '0 万',
     capRatio: 0, overCap: false, salaryLeft: 0,
+    capLevel: 1, capBaseText: '0 万', capBonusText: '0 万', capNextText: '', capAtMax: false,
+    capRuleText: '', salaryTrainingNote: '',
     starterCount: 0, starterNeed: 5, benchCount: 0, benchNeed: 7,
     avgOvr: 0, starterAvgOvr: 0, ready: false, mismatchCount: 0,
     playStyle: 'balanced', styleList: [], styleDesc: '', posFilters: [],
@@ -286,7 +295,10 @@ Page(store.connectPage(function (state, self) {
     if (res && res.overCap) {
       wx.showToast({ title: '已排满，但薪资超帽，请手动下调', icon: 'none' });
     } else {
-      wx.showToast({ title: '已排出最强阵容 均评' + (res ? res.avgOvr : ''), icon: 'none' });
+      wx.showToast({
+        title: '工资帽内最强阵容 · 替补 ' + (res ? res.benchCount : 0) + '/' + (res ? res.benchNeed : CONFIG.roster.benchCount),
+        icon: 'none'
+      });
     }
   },
 

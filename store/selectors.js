@@ -190,9 +190,72 @@ function bondsOfPlayer(state, playerId) {
   });
 }
 
+/* 经理等级 → 工资帽视图（主页 / 阵容 / 个人页 / 设置共用同一份口径） */
+function salaryCapView(state) {
+  const info = growth.salaryCapInfo(state.profile && state.profile.level);
+  const per = Math.max(0, Math.round(Number(CONFIG.roster.salaryCapPerLevel) || 0));
+  const perText = fmt.salaryText(per);
+  return {
+    level: info.level,
+    base: info.base,
+    cap: info.cap,
+    bonus: info.bonus,
+    max: info.max,
+    atMax: info.atMax,
+    nextCap: info.nextCap,
+    nextGain: info.nextGain,
+    baseText: fmt.salaryText(info.base),
+    capText: fmt.salaryText(info.cap),
+    bonusText: fmt.salaryText(info.bonus),
+    maxText: fmt.salaryText(info.max),
+    perLevelText: perText,
+    summaryText: 'Lv.' + info.level + ' 工资帽 ' + fmt.salaryText(info.cap),
+    nextText: info.atMax ? '已达工资帽上限' : ('下一级 +' + perText),
+    ruleText: 'Lv.1 基础 ' + fmt.salaryText(info.base) + ' · 每升 1 级 +' + perText + ' · 上限 ' + fmt.salaryText(info.max)
+  };
+}
+
+/* 培养重置视图：只回退等级与突破，升星保留 */
+function growthResetView(state, uid) {
+  const inst = state.collection[uid];
+  if (!inst) {
+    return {
+      available: false, level: 1, breakthrough: 0, refundGold: 0, refundShard: 0,
+      refundText: '', summaryText: '卡牌不存在。', note: '卡牌不存在。', buttonText: '无需重置', confirmText: ''
+    };
+  }
+  const plan = growth.resetPlan(inst);
+  const parts = [];
+  if (plan.refundGold > 0) parts.push(fmt.numText(plan.refundGold) + ' 金币');
+  if (plan.refundShard > 0) parts.push(plan.refundShard + ' 碎片');
+  const refundText = parts.length ? parts.join(' + ') : '0';
+  const rateNote = plan.rate < 1 ? ('（按 ' + fmt.pct(plan.rate, 0) + ' 返还）') : '';
+  const note = '只重置等级与突破；升星保留，已消耗的同名卡不返还。装备与时刻卡不受影响。';
+  const confirmText = plan.available
+    ? ('将把 Lv.' + plan.level + ' / 突破 +' + plan.breakthrough + ' 重置为 Lv.1 / +0，返还 ' +
+      refundText + rateNote + '。' + note)
+    : note;
+  const summaryText = plan.available
+    ? ('重置后 Lv.1 / +0 · 返还 ' + refundText + '；升星保留')
+    : '当前没有可重置的等级或突破';
+  return {
+    available: plan.available,
+    level: plan.level,
+    breakthrough: plan.breakthrough,
+    refundGold: plan.refundGold,
+    refundShard: plan.refundShard,
+    refundText: refundText,
+    summaryText: summaryText,
+    note: note,
+    buttonText: plan.available ? '重置培养' : '无需重置',
+    confirmText: confirmText
+  };
+}
+
 /* 阵容视图：首发/替补 + 薪资合计 + 工资帽校验 + 平均 OVR + 羁绊 */
 function rosterView(state) {
-  const cap = CONFIG.roster.salaryCap;
+  const capView = salaryCapView(state);
+  const cap = capView.cap;
   const starters = state.roster.starters.map(function (uid) { return uid ? effectiveCardOf(state, uid) : null; });
   const bench = state.roster.bench.map(function (uid) { return uid ? effectiveCardOf(state, uid) : null; });
   const all = starters.concat(bench).filter(Boolean);
@@ -219,6 +282,18 @@ function rosterView(state) {
     benchCount: bench.filter(Boolean).length,
     totalSalary: totalSalary,
     salaryCap: cap,
+    salaryCapBase: capView.base,
+    salaryCapBonus: capView.bonus,
+    salaryCapLevel: capView.level,
+    salaryCapText: capView.capText,
+    salaryCapBaseText: capView.baseText,
+    salaryCapBonusText: capView.bonusText,
+    salaryCapMaxText: capView.maxText,
+    salaryCapPerLevelText: capView.perLevelText,
+    salaryCapNextText: capView.nextText,
+    salaryCapAtMax: capView.atMax,
+    salaryCapRuleText: capView.ruleText,
+    salaryTrainingNote: '训练只提升属性，不涨合同薪资；需要腾空间时可重置培养。',
     salaryLeft: cap - totalSalary,
     overCap: totalSalary > cap,
     capRatio: fmt.clamp(totalSalary / cap, 0, 1),
@@ -1447,6 +1522,8 @@ module.exports = {
   duplicatesOf: duplicatesOf,
   ownedCards: ownedCards,
   inRoster: inRoster,
+  salaryCapView: salaryCapView,
+  growthResetView: growthResetView,
   rosterView: rosterView,
   homeTeam: homeTeam,
   homeTeamFromSnapshot: homeTeamFromSnapshot,

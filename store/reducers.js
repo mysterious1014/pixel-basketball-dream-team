@@ -394,6 +394,31 @@ function reduce(state, action) {
       });
     }
 
+    /* 培养重置：只回退等级与突破，升星保留。
+     * 返还额由 growth.resetPlan 从实例当前进度重算，不读取任何前端传入的成本。 */
+    case T.RESET_GROWTH: {
+      const inst = state.collection[p.uid];
+      if (!inst) return state;
+      const plan = growth.resetPlan(inst);
+      if (!plan.available) return state;
+      const collection = copy(state.collection);
+      collection[p.uid] = copy(Object.assign({}, inst, {
+        level: plan.nextLevel,
+        breakthrough: plan.nextBreakthrough
+      }));
+      const profile = copy(state.profile);
+      profile.gold = (Number(profile.gold) || 0) + plan.refundGold;
+      const next = Object.assign({}, state, {
+        collection: collection,
+        profile: profile,
+        bag: bagAdd(state.bag, 'shard', plan.refundShard),
+        updatedAt: now
+      });
+      const name = (players.getCard(inst.cardId) || {}).name || '球员';
+      pushNotice(next, name + ' 培养已重置：返还 ' + fmt.numText(plan.refundGold) + ' 金币 + ' + plan.refundShard + ' 碎片（升星保留）', 'growth', now);
+      return next;
+    }
+
     case T.EQUIP: {
       const inst = state.collection[p.uid];
       const item = itemsData.getItem(p.itemId);
@@ -1034,34 +1059,84 @@ function levelExpNeed(level) {
   return Math.round(CONFIG.economy.expToNextBase * (1 + (level - 1) * 0.35));
 }
 
-/* 一键最优阵容：按位置挑有效 OVR 最高的卡进首发，其余高分进替补 */
+/* 一键最优阵容（玩家评价优化版）：
+ *   1) 首发在工资帽内按位置做一次确定性 DP，最大化首发 OVR；
+ *   2) 替补按 OVR 从高到低扫描，只收「加进来仍不超帽」的卡；
+ *   3) 排完保证 totalSalary <= salaryCap，不会出现「点一键就超帽」。
+ * 纯函数：候选排序固定为 OVR↓ / 薪资↑ / uid↑，不碰随机数与时间。 */
 function autoFill(state) {
   const positions = CONFIG.roster.slotPositions;
-  const uids = Object.keys(state.collection);
-  const scored = uids.map(function (uid) {
+  const cap = growth.salaryCapOf(state.profile.level);
+  const scored = Object.keys(state.collection).map(function (uid) {
     const inst = state.collection[uid];
     const def = players.getCard(inst.cardId);
     if (!def) return null;
     const eff = growth.effectiveCard(def, inst, itemsData.EQUIP_INDEX);
-    return { uid: uid, position: def.position, ovr: eff.ovr };
-  }).filter(Boolean);
-
-  const starters = [null, null, null, null, null];
-  const used = [];
-  positions.forEach(function (pos, i) {
-    const cand = scored.filter(function (c) { return c.position === pos && used.indexOf(c.uid) === -1; })
-      .sort(function (a, b) { return b.ovr - a.ovr; });
-    if (cand.length) { starters[i] = cand[0].uid; used.push(cand[0].uid); }
+    return { uid: uid, position: def.position, ovr: eff.ovr, salary: Math.max(0, Number(eff.salary) || 0) };
+  }).filter(Boolean).sort(function (a, b) {
+    return b.ovr - a.ovr || a.salary - b.salary || a.uid.localeCompare(b.uid);
   });
-  // 位置没凑齐就用剩余最高分补位
-  const rest = scored.filter(function (c) { return used.indexOf(c.uid) === -1; }).sort(function (a, b) { return b.ovr - a.ovr; });
+
+  function better(a, b) {
+    if (!b) return true;
+    if (a.ovr !== b.ovr) return a.ovr > b.ovr;
+    if (a.salary !== b.salary) return a.salary < b.salary;
+    return a.sig < b.sig;
+  }
+
+  /* DP 状态按「已占薪资」去重：同薪资下 OVR 更高的解必胜。 */
+  let states = new Map();
+  states.set(0, { salary: 0, ovr: 0, filled: 0, picks: [], sig: '' });
+  positions.forEach(function (pos) {
+    const cand = scored.filter(function (c) { return c.position === pos; });
+    const next = new Map();
+    states.forEach(function (st) {
+      if (!cand.length) {
+        const picks = st.picks.concat([null]);
+        const ns = { salary: st.salary, ovr: st.ovr, filled: st.filled, picks: picks, sig: picks.join('|') };
+        if (better(ns, next.get(ns.salary))) next.set(ns.salary, ns);
+        return;
+      }
+      cand.forEach(function (c) {
+        const salary = st.salary + c.salary;
+        if (salary > cap) return;
+        const picks = st.picks.concat([c.uid]);
+        const ns = { salary: salary, ovr: st.ovr + c.ovr, filled: st.filled + 1, picks: picks, sig: picks.join('|') };
+        if (better(ns, next.get(ns.salary))) next.set(ns.salary, ns);
+      });
+    });
+    states = next;
+  });
+  let best = null;
+  states.forEach(function (st) { if (better(st, best)) best = st; });
+  best = best || { salary: 0, ovr: 0, filled: 0, picks: positions.map(function () { return null; }), sig: '' };
+
+  const starters = best.picks.slice();
+  const used = {};
+  starters.forEach(function (uid) { if (uid) used[uid] = true; });
+  let spent = best.salary;
+
+  /* 某个位置没有卡时，用剩余可负担的最高 OVR 补位（与旧行为一致，仍不超帽）。 */
   for (let i = 0; i < starters.length; i++) {
     if (starters[i]) continue;
-    const cand = rest.shift();
-    if (cand) { starters[i] = cand.uid; used.push(cand.uid); }
+    const cand = scored.filter(function (c) { return !used[c.uid] && spent + c.salary <= cap; });
+    if (!cand.length) continue;
+    starters[i] = cand[0].uid;
+    used[cand[0].uid] = true;
+    spent += cand[0].salary;
   }
-  const bench = rest.slice(0, CONFIG.roster.benchCount).map(function (c) { return c.uid; });
+
+  const bench = [];
+  for (let i = 0; i < scored.length && bench.length < CONFIG.roster.benchCount; i++) {
+    const c = scored[i];
+    if (used[c.uid]) continue;
+    if (spent + c.salary > cap) continue;
+    bench.push(c.uid);
+    used[c.uid] = true;
+    spent += c.salary;
+  }
   while (bench.length < CONFIG.roster.benchCount) bench.push(null);
+
   // playStyle / defense 是玩家的战术选择，一键排阵不能把它们顺手清掉
   return { starters: starters, bench: bench, playStyle: state.roster.playStyle, defense: state.roster.defense || tacticsData.AUTO_DEFENSE };
 }

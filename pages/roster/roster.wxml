@@ -14,6 +14,9 @@
       <text class="px-mute">{{overCap ? '超出 ' + leftText : '剩余 ' + leftText}}</text>
       <text class="px-mute">首发均评 {{starterAvgOvr}} · 全队均评 {{avgOvr}}</text>
     </view>
+    <text class="px-mute rs-cap-rule">经理 Lv{{capLevel}} · 基础 {{capBaseText}} · 等级加成 {{capBonusText}} · {{capNextText}}</text>
+    <text class="px-mute rs-cap-rule">{{capRuleText}}</text>
+    <text class="px-mute rs-cap-rule">{{salaryTrainingNote}}</text>
     <view wx:if="{{overCap}}" class="rs-warn px-mt8">薪资超出工资帽，无法出战。移走低薪替补或换掉高薪球员即可。</view>
     <view wx:elif="{{mismatchCount > 0}}" class="rs-tip px-mt8">有 {{mismatchCount}} 名首发不在擅长位置，属性发挥会打折。</view>
   </view>

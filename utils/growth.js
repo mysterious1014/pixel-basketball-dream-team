@@ -1,8 +1,10 @@
 /* utils/growth.js —— 养成公式（第七章 7.5 单一出口）
- * 职责：等级 / 星级 / 突破 / 装备 → 有效属性，再由 utils/ovr.js 推出有效 OVR、稀有度、薪资。
+ * 职责：等级 / 星级 / 突破 / 装备 → 有效属性，再由 utils/ovr.js 推出有效 OVR 与稀有度；
+ *       合同薪资默认冻结在出厂值，工资帽则随经理等级成长。
  * 口径说明：
- *   - baseOvr / baseRarity：卡牌出厂值（数据层固化，抽卡卡池按它归档）；
- *   - ovr / rarity / salary：养成后的有效值（阵容与工资帽按它校验）。
+ *   - baseOvr / baseRarity / baseSalary：卡牌出厂值（数据层固化，抽卡卡池按它归档）；
+ *   - ovr / rarity：养成后的有效值（阵容与比赛按它生效）；
+ *   - salary：默认恒等于出厂薪资。config.salary.growthAffectsSalary=true 时才随有效 OVR 浮动；
  *   - 稀有度始终由当前 OVR 推导（第五章 5.4），因此养满可以从 SSR 升到 UR，但不会改变它在卡池里的档位。
  */
 const CONFIG = require('../config.js');
@@ -86,8 +88,35 @@ function effectiveCard(cardDef, instance, itemIndex) {
     ovrRaw: ev.ovrRaw,
     ovr: ev.ovr,
     rarity: ev.rarity,
-    salary: ev.salary
+    /* 养成不自动涨薪：合同按出厂评级锁定，训练只提升球场能力。
+     * 这是「全属性成长」与工资帽之间的解耦点，也是本版对玩家评价的直接回应。 */
+    salary: CONFIG.salary.growthAffectsSalary === true ? ev.salary : cardDef.salary
   };
+}
+
+/* 经理等级 → 工资帽（单位：万）。Lv.1 = config.roster.salaryCap，逐级加成并封顶。 */
+function salaryCapInfo(level) {
+  const R = CONFIG.roster;
+  const lv = Math.max(1, Math.floor(Number(level) || 1));
+  const base = Math.max(0, Math.round(Number(R.salaryCap) || 0));
+  const per = Math.max(0, Math.round(Number(R.salaryCapPerLevel) || 0));
+  const max = Math.max(base, Math.round(Number(R.salaryCapMax) || base));
+  const cap = Math.min(max, base + (lv - 1) * per);
+  const nextCap = Math.min(max, base + lv * per);
+  return {
+    level: lv,
+    base: base,
+    cap: cap,
+    bonus: cap - base,
+    max: max,
+    atMax: cap >= max,
+    nextCap: nextCap,
+    nextGain: nextCap - cap
+  };
+}
+
+function salaryCapOf(level) {
+  return salaryCapInfo(level).cap;
 }
 
 /* 升到 level+1 需要的金币 */
@@ -110,6 +139,37 @@ function breakCost(breakthrough) {
   return G.breakCost[br] || null;
 }
 
+/* 培养重置计划：只回退等级与突破，升星保留。
+ * 返还额从实例当前进度反推（不是信任前端 payload），reducer 与视图共用这一份纯函数。 */
+function resetPlan(instance) {
+  const lv = fmt.clamp(Number(instance && instance.level) || 1, 1, G.levelMax);
+  const br = fmt.clamp(Number(instance && instance.breakthrough) || 0, 0, G.breakMax);
+  let spentGold = 0;
+  let spentShard = 0;
+  for (let l = 1; l < lv; l++) spentGold += levelUpCost(l);
+  for (let b = 0; b < br; b++) {
+    const c = breakCost(b);
+    if (!c) continue;
+    spentGold += Number(c.gold) || 0;
+    spentShard += Number(c.shard) || 0;
+  }
+  const rate = fmt.clamp(Number(G.resetRefundRate) || 0, 0, 1);
+  const refundGold = Math.floor(spentGold * rate);
+  const refundShard = Math.floor(spentShard * rate);
+  return {
+    available: lv > 1 || br > 0,
+    level: lv,
+    breakthrough: br,
+    nextLevel: 1,
+    nextBreakthrough: 0,
+    spentGold: spentGold,
+    spentShard: spentShard,
+    refundGold: refundGold,
+    refundShard: refundShard,
+    rate: rate
+  };
+}
+
 /* 升级前校验：返回 {ok, reason} */
 function checkLevelUp(instance, profile) {
   const lv = (instance && instance.level) || 1;
@@ -124,9 +184,12 @@ module.exports = {
   equipmentBonus: equipmentBonus,
   effectiveAttrs: effectiveAttrs,
   effectiveCard: effectiveCard,
+  salaryCapInfo: salaryCapInfo,
+  salaryCapOf: salaryCapOf,
   levelUpCost: levelUpCost,
   starUpCost: starUpCost,
   breakCost: breakCost,
+  resetPlan: resetPlan,
   checkLevelUp: checkLevelUp,
   limits: { levelMax: G.levelMax, starMax: G.starMax, breakMax: G.breakMax }
 };

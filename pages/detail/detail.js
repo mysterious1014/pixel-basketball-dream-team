@@ -91,6 +91,11 @@ Page(store.connectPage(function (state, self) {
   const brMaxed = !brCost;
   const shard = Number(state.bag.shard) || 0;
   const gold = Number(state.profile.gold) || 0;
+  /* 培养重置：页面只读 selector，返还额与按钮可用性都由纯函数给出 */
+  const reset = selectors.growthResetView(state, uid);
+  const salaryPolicyText = CONFIG.salary.growthAffectsSalary === true
+    ? '薪资随有效 OVR 浮动'
+    : '合同薪资按出厂评级锁定，训练不涨薪';
 
   // 装备三槽
   const slots = ['shoes', 'wrist', 'head'].map(function (s) {
@@ -225,6 +230,12 @@ Page(store.connectPage(function (state, self) {
     breakMax: growth.limits.breakMax,
     shard: shard,
     goldText: fmt.numText(gold),
+    salaryPolicyText: salaryPolicyText,
+    growthResetAvailable: reset.available,
+    growthResetSummary: reset.summaryText,
+    growthResetNote: reset.note,
+    growthResetButtonText: reset.buttonText,
+    growthResetConfirmText: reset.confirmText,
 
     /* 时刻卡槽（摊平后的一层字段） */
     momentOpen: momentOpen,
@@ -296,6 +307,8 @@ Page(store.connectPage(function (state, self) {
     lvCost: 0, lvCostText: '0', lvMaxed: false, canLevel: false, levelMax: 20,
     starNeed: 0, starMaxed: false, canStar: false, starMax: 5,
     brCost: null, brCostText: '', brMaxed: false, canBreak: false, breakMax: 3, shard: 0, goldText: '0',
+    salaryPolicyText: '', growthResetAvailable: false, growthResetSummary: '', growthResetNote: '',
+    growthResetButtonText: '无需重置', growthResetConfirmText: '',
     slots: [], equipOpen: false, equipSlot: '', equipSlotName: '', equipItemId: '',
     /* 时刻卡字段的默认值必须与 mapState 返回**同时**存在（AGENTS.md §4）：
      * 缺了首屏就是 undefined，K 组「WXML 字段都有来源」会红。 */
@@ -326,7 +339,7 @@ Page(store.connectPage(function (state, self) {
   /* ---------- 养成 ---------- */
   onLevelUp() {
     const res = store.levelUp(this.data.uid);
-    this.toast(res, '升级成功 Lv' + (this.data.level + 1));
+    this.toast(res, '升级成功 Lv' + (res && res.level ? res.level : this.data.level));
   },
 
   onStarUp() {
@@ -341,7 +354,8 @@ Page(store.connectPage(function (state, self) {
       confirmText: '升星',
       success: function (r) {
         if (!r.confirm) return;
-        self.toast(store.starUp(self.data.uid), '升星成功 ' + (self.data.stars + 1) + '★');
+        const res = store.starUp(self.data.uid);
+        self.toast(res, '升星成功 ' + (res && res.stars ? res.stars : self.data.stars) + '★');
       }
     });
   },
@@ -351,7 +365,32 @@ Page(store.connectPage(function (state, self) {
       wx.showToast({ title: this.data.brMaxed ? '已满突破' : '金币或碎片不足', icon: 'none' });
       return;
     }
-    this.toast(store.breakthrough(this.data.uid), '突破成功 +' + (this.data.breakthrough + 1));
+    const res = store.breakthrough(this.data.uid);
+    this.toast(res, '突破成功 +' + (res && res.breakthrough != null ? res.breakthrough : this.data.breakthrough));
+  },
+
+  /* 培养重置：二次确认 → commands.resetGrowth（reducer 自行复算返还额）。
+   * 不返还同名卡（升星已消耗），但等级 / 突破 100% 退回金币与突破碎片。 */
+  onResetGrowth() {
+    if (!this.data.growthResetAvailable) {
+      wx.showToast({ title: '当前没有可重置的等级或突破', icon: 'none' });
+      return;
+    }
+    const self = this;
+    wx.showModal({
+      title: '重置培养',
+      content: this.data.growthResetConfirmText,
+      confirmText: '重置',
+      success: function (r) {
+        if (!r.confirm) return;
+        const res = store.resetGrowth(self.data.uid);
+        if (res && res.ok) {
+          wx.showToast({ title: '已重置 · 返还 ' + res.refundText, icon: 'none', duration: 1200 });
+        } else {
+          wx.showToast({ title: (res && res.reason) || '重置失败', icon: 'none' });
+        }
+      }
+    });
   },
 
   toast(res, okText) {

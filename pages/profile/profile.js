@@ -15,6 +15,8 @@ Page(store.connectPage(function (state) {
   const s = state.stats;
   const cleared = (state.season && state.season.cleared) || {};
   const arena = selectors.arenaSummary(state, Date.now());
+  /* 经理等级 → 工资帽（玩家评价优化）：与阵容页 / 设置页共用同一个 selector */
+  const cap = selectors.salaryCapView(state);
   /* 交易市场（里程碑 3 第二块）：只要摘要（橱窗格数 / 可售张数 / 金币），买卖在市集页做 */
   const market = selectors.marketView(state, Date.now());
   /* 王朝赛季（里程碑 3 第三块）：只要摘要（等级 / 积分 / 剩余天数 / 待领），任务与通行证在王朝页做 */
@@ -33,6 +35,15 @@ Page(store.connectPage(function (state) {
     diamondText: fmt.numText(state.profile.diamond),
     ticketNormal: state.profile.ticketNormal,
     ticketAdvanced: state.profile.ticketAdvanced,
+
+    capLevel: cap.level,
+    capText: cap.capText,
+    capBaseText: cap.baseText,
+    capBonusText: cap.bonusText,
+    capNextText: cap.nextText,
+    capAtMax: cap.atMax,
+    capRuleText: cap.ruleText,
+    capTrainingNote: '训练只提升属性，不涨合同薪资；需要腾空间时可到球员详情页重置培养。',
 
     rarityRows: progress.byRarity.map(function (r) {
       return { rarity: r.rarity, label: r.label, got: r.got, total: r.total, pct: r.total ? Math.round((r.got / r.total) * 100) : 0 };
@@ -101,6 +112,8 @@ Page(store.connectPage(function (state) {
     marketShelfCount: 0, marketSellable: 0, marketDayText: '',
     dynastyEnabled: true, dynastyLevelText: 'Lv.0', dynastyPointsText: '0', dynastyDaysLeftText: '', dynastyClaimableText: '',
     goldText: '0', diamondText: '0', ticketNormal: 0, ticketAdvanced: 0,
+    capLevel: 1, capText: '0 万', capBaseText: '0 万', capBonusText: '0 万', capNextText: '', capAtMax: false,
+    capRuleText: '', capTrainingNote: '',
     rarityRows: [], ownedCount: 0, totalCount: 0, collectRatio: 0, instances: 0,
     battles: 0, wins: 0, losses: 0, draws: 0, winRate: 0, bestMargin: 0, totalPoints: 0,
     pulls: 0, cardsObtained: 0, urCount: 0,

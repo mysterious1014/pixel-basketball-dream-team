@@ -224,7 +224,18 @@ function createCommands(api) {
   function autoFill() {
     dispatch(A.autoFillRoster());
     const view = selectors.rosterView(getState());
-    return { ok: true, avgOvr: view.avgOvr, totalSalary: view.totalSalary, overCap: view.overCap };
+    /* 页面要能一眼看懂「为什么替补没排满」：这版改为工资帽内求解，
+     * 所以把实际替补人数与动态工资帽一起带回去，不再只报一个模糊的「已排最强」。 */
+    return {
+      ok: true,
+      avgOvr: view.avgOvr,
+      starterAvgOvr: view.starterAvgOvr,
+      totalSalary: view.totalSalary,
+      salaryCap: view.salaryCap,
+      benchCount: view.benchCount,
+      benchNeed: CONFIG.roster.benchCount,
+      overCap: view.overCap
+    };
   }
 
   function setPlayStyle(style) {
@@ -410,6 +421,32 @@ function createCommands(api) {
     if ((Number(state.bag.shard) || 0) < cost.shard) return fail('突破碎片不足，需要 ' + cost.shard + ' 个（现有 ' + (Number(state.bag.shard) || 0) + '）');
     dispatch(A.breakthrough(uid, cost));
     return { ok: true, breakthrough: inst.breakthrough + 1, cost: cost };
+  }
+
+  /* 培养重置（玩家评价优化）：只回退等级与突破，升星保留。
+   * 返还额完全由 utils/growth.resetPlan 从实例反推；reducer 会再算一遍，命令层只负责可读理由与成功摘要。 */
+  function resetGrowth(uid) {
+    const state = getState();
+    const inst = state.collection[uid];
+    if (!inst) return fail('卡牌不存在');
+    const plan = growth.resetPlan(inst);
+    if (!plan.available) return fail('当前没有可重置的等级或突破');
+    const t = now();
+    dispatch(A.resetGrowth(uid, t));
+    const parts = [];
+    if (plan.refundGold > 0) parts.push(fmt.numText(plan.refundGold) + ' 金币');
+    if (plan.refundShard > 0) parts.push(plan.refundShard + ' 碎片');
+    const refundText = parts.length ? parts.join(' + ') : '0';
+    return {
+      ok: true,
+      beforeLevel: plan.level,
+      beforeBreakthrough: plan.breakthrough,
+      level: plan.nextLevel,
+      breakthrough: plan.nextBreakthrough,
+      refundGold: plan.refundGold,
+      refundShard: plan.refundShard,
+      refundText: refundText
+    };
   }
 
   function equip(uid, itemId) {
@@ -705,6 +742,7 @@ function createCommands(api) {
     levelUp: levelUp,
     starUp: starUp,
     breakthrough: breakthrough,
+    resetGrowth: resetGrowth,
     findDonor: findDonor,
     equip: equip,
     unequip: unequip,

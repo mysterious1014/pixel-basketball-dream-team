@@ -24,6 +24,7 @@ const T = {
   LEVEL_UP: 'LEVEL_UP',
   STAR_UP: 'STAR_UP',
   BREAKTHROUGH: 'BREAKTHROUGH',
+  RESET_GROWTH: 'RESET_GROWTH',
   EQUIP: 'EQUIP',
   UNEQUIP: 'UNEQUIP',
   /* 里程碑 2：名场面时刻卡（随身装备语义，与 EQUIP/UNEQUIP 同构）与竞技商城购买 */
@@ -81,6 +82,8 @@ module.exports = {
   levelUp: function (uid, cost, now) { return act(T.LEVEL_UP, { uid: uid, cost: cost, now: now }); },
   starUp: function (uid, donorUid) { return act(T.STAR_UP, { uid: uid, donorUid: donorUid }); },
   breakthrough: function (uid, cost) { return act(T.BREAKTHROUGH, { uid: uid, cost: cost }); },
+  /* 培养重置：payload 只带 uid 与时间，返还金额由 reducer 从实例进度重算 */
+  resetGrowth: function (uid, now) { return act(T.RESET_GROWTH, { uid: uid, now: now }); },
   equip: function (uid, itemId) { return act(T.EQUIP, { uid: uid, itemId: itemId }); },
   unequip: function (uid, slot) { return act(T.UNEQUIP, { uid: uid, slot: slot }); },
   equipMoment: function (uid, momentId) { return act(T.EQUIP_MOMENT, { uid: uid, momentId: momentId }); },

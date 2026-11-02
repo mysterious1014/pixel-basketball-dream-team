@@ -111,13 +111,17 @@ const CONFIG = {
   },
 
   salary: {
-    // 单卡薪资(万) = OVR>=threshold ? max(base, round((OVR-threshold) * 系数 * scale)) : base
+    // 单卡出厂薪资(万) = OVR>=threshold ? max(base, round((OVR-threshold) * 系数 * scale)) : base
     // scale=42 的依据：使第十一章 schema 示例「库里 SSR / salary 1200 万」可复现（OVR92 → 1201 万），
-    // 同时让 12000 万工资帽真正约束阵容（全 UR ≈ 22000 万 超限；5 SSR 首发 + 低配替补 ≈ 8600 万 通过）。
+    // 同时让 Lv.1 的 12000 万工资帽真正约束阵容（全 UR ≈ 22000 万 超限；5 SSR 首发 + 低配替补 ≈ 8600 万 通过）。
     threshold: 70,
     base: 200,
     scale: 42,
-    coef: { UR: 1.6, SSR: 1.3, SR: 1.1, R: 1.0, N: 0.8 }
+    coef: { UR: 1.6, SSR: 1.3, SR: 1.1, R: 1.0, N: 0.8 },
+    // 玩家评价驱动的裁决：训练只提升属性 / OVR，不改变合同薪资。
+    // false 时 effectiveCard.salary 恒取出厂卡牌薪资，避免「科比篮板涨到 80 也跟着涨薪」；
+    // 打开此项可回到「按有效 OVR 浮动薪资」的旧口径，仅供对照，不作为默认玩法。
+    growthAffectsSalary: false
   },
 
   /* ---------- 第七章 7.2 阵容 ---------- */
@@ -125,7 +129,11 @@ const CONFIG = {
     starterCount: 5,
     benchCount: 7,
     slotPositions: ['PG', 'SG', 'SF', 'PF', 'C'],
+    // 工资帽是经理等级的函数：salaryCap = Lv.1 基准，之后每级 +salaryCapPerLevel，封顶 salaryCapMax。
+    // 12,000 保持原提示词的基线；18,000 仍低于薪资 Top12 合计（约 18,781），所以取舍仍然存在。
     salaryCap: 12000,
+    salaryCapPerLevel: 500,
+    salaryCapMax: 18000,
     // 交互（防坑）：MVP 用「点选 A 再点选 B 交换」，不用拖拽
     swapMode: 'tap'
   },
@@ -312,6 +320,9 @@ const CONFIG = {
       { gold: 9000, shard: 16 },
       { gold: 18000, shard: 30 }
     ],
+    // 培养重置：只回退等级与突破，升星保留（同名卡已消耗，无法原样返还）。
+    // 返还率留给后续经济调参；默认 100% 返还金币与突破碎片，所有金额由 reducer 从当前实例重算。
+    resetRefundRate: 1,
     // 同名卡转碎片（时空进化的地基，里程碑 3 用）
     dupToShard: { N: 2, R: 4, SR: 8, SSR: 16, UR: 32 }
   },

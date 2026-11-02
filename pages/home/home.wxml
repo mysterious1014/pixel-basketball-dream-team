@@ -41,7 +41,7 @@
     </view>
     <view class="px-mt12">
       <px-progress value="{{capRatio}}" max="{{100}}" variant="{{overCap ? 'danger' : 'orange'}}" warnOver="{{false}}"
-        caption="工资帽 {{salaryText}} / {{capText}}" label="{{starterCount}}/{{starterNeed}} 首发" height="{{22}}" />
+        caption="工资帽 Lv{{level}} · {{salaryText}} / {{capText}}" label="{{starterCount}}/{{starterNeed}} 首发" height="{{22}}" />
     </view>
     <view wx:if="{{overCap}}" class="hm-warn px-mt8">薪资超出工资帽，无法出战，请先调整阵容</view>
     <view wx:elif="{{!rosterReady}}" class="hm-warn px-mt8">首发还差 {{starterNeed - starterCount}} 人，去招募页抽卡吧</view>

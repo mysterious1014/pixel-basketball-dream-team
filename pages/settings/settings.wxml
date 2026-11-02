@@ -13,6 +13,19 @@
     </view>
   </view>
 
+  <!-- 经理等级与工资帽（玩家评价优化） -->
+  <view class="px-panel px-panel--flat px-mt16">
+    <view class="px-row--between">
+      <text class="px-panel__title">经理等级与工资帽</text>
+      <text class="px-mute">Lv{{salaryCapLevel}}</text>
+    </view>
+    <view class="st-kv"><text class="px-mute">当前工资帽</text><text class="px-text">{{salaryCap}}</text></view>
+    <view class="st-kv"><text class="px-mute">等级加成</text><text class="px-text">{{salaryCapBonus}}</text></view>
+    <view class="st-kv"><text class="px-mute">升级预告</text><text class="px-text">{{salaryCapNext}}</text></view>
+    <text class="px-mute st-legal">{{salaryCapRule}}</text>
+    <text class="px-mute st-legal">{{salaryPolicyText}}</text>
+  </view>
+
   <!-- 演出与无障碍 -->
   <view class="px-panel px-panel--flat px-mt16">
     <text class="px-panel__title">演出与体验</text>
