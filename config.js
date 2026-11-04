@@ -9,7 +9,7 @@ const CONFIG = {
   /* ---------- 基本信息 ---------- */
   GAME_NAME: '像素篮球梦之队',
   GAME_NAME_EN: 'PIXEL DREAM TEAM',
-  VERSION: '0.6.0-m6',   // 版本号随里程碑递增（0.M.0-mM）；M6 = 现役全量扩充 + 立绘精细化 + 比赛页重做
+  VERSION: '0.6.3-m6',   // 版本号随里程碑递增（0.M.0-mM）；M6 = 现役全量扩充 + 立绘精细化 + 比赛页重做
   MILESTONE: 'M6',
   SAVE_KEY: 'pxbb_save_v1',
   SAVE_SCHEMA: 1,
